@@ -154,7 +154,7 @@ const MessageBubble = memo(function MessageBubble({
               <input
                 value={correctionText}
                 onChange={(e) => setCorrectionText(e.target.value)}
-                placeholder="期望的回复..."
+                placeholder="你更希望它怎么说？"
                 className="flex-1 px-2 py-1 text-xs rounded border border-border bg-background"
                 onKeyDown={(e) => { if (e.key === "Enter") submitCorrection(); }}
                 autoFocus

@@ -3,17 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' ws://127.0.0.1:*;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' ws://127.0.0.1:*;">
     <title>梦间 / Yumema</title>
-    <script>
-      // Detect system dark mode before first paint, avoid FOUC
-      if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        document.documentElement.classList.add('dark');
-      }
-      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-        document.documentElement.classList.toggle('dark', e.matches);
-      });
-    </script>
   </head>
   <body>
     <div id="root"></div>

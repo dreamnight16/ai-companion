@@ -1,5 +1,5 @@
 import { Flex, Text, Button, Progress } from "@radix-ui/themes";
-import { Sparkles, AlertTriangle } from "lucide-react";
+import { MessageCircle, AlertTriangle } from "lucide-react";
 import { useSetupWizard } from "../hooks/useSetupWizard";
 import { usePlatform } from "../hooks/usePlatform";
 import WelcomeStep from "../components/wizard/WelcomeStep";
@@ -46,12 +46,12 @@ export default function SetupWizard() {
             }}>
             {transitionTimedOut
               ? <AlertTriangle size={32} color="var(--red-9)" />
-              : <Sparkles size={32} color="var(--accent-9)" />
+              : <MessageCircle size={32} color="var(--accent-9)" />
             }
           </Flex>
           <Flex direction="column" align="center" gap="2">
             <Text size="4" weight="bold">
-              {transitionTimedOut ? "启动超时" : "正在创建你的 AI 伴侣..."}
+              {transitionTimedOut ? "启动超时" : "正在准备聊天空间..."}
             </Text>
             <Text size="2" color="gray">
               {transitionTimedOut ? "窗口切换可能未响应，请手动重试" : "一切准备就绪"}
@@ -83,7 +83,7 @@ export default function SetupWizard() {
                   height: 6,
                   borderRadius: 999,
                   background: i === step ? "var(--accent-9)" : i < step ? "var(--accent-5)" : "var(--gray-5)",
-                  transition: "all 400ms cubic-bezier(0.34, 1.56, 0.64, 1)",
+                  transition: "width 400ms cubic-bezier(0.34, 1.56, 0.64, 1), background-color 200ms ease",
                 }}
               />
             ))}

@@ -44,11 +44,11 @@ export default function RelationshipModeStep({
         </button>
         {showRisk && (
           <div className="px-4 pb-4 text-xs leading-relaxed space-y-2.5 text-zinc-600 dark:text-zinc-300 fade-in">
-            <p><strong className="text-zinc-800 dark:text-zinc-100">作者声明：</strong>AI 生成内容不代表作者立场，本软件仅供学习娱乐。因使用本软件产生的任何后果由用户自担。</p>
+            <p><strong className="text-zinc-800 dark:text-zinc-100">先说清楚：</strong>模型生成的内容只代表这次对话，不代表作者立场；软件用于学习和娱乐。</p>
             <p><strong className="text-zinc-800 dark:text-zinc-100">账号安全：</strong>QQ 接入使用第三方协议，存在被封号风险，强烈建议使用小号。</p>
-            <p><strong className="text-zinc-800 dark:text-zinc-100">费用：</strong>AI API 按量计费，频繁聊天会产生费用。</p>
-            <p><strong className="text-zinc-800 dark:text-zinc-100">情感健康：</strong>TA 是 AI，不能替代真实的人际关系，请保持现实生活中的交往。</p>
-            <p><strong className="text-zinc-800 dark:text-zinc-100">隐私：</strong>聊天内容会发送给 AI 服务商处理，请勿透露敏感信息。</p>
+            <p><strong className="text-zinc-800 dark:text-zinc-100">费用：</strong>模型服务可能按量收费，聊得多就会多花一些。</p>
+            <p><strong className="text-zinc-800 dark:text-zinc-100">情感健康：</strong>TA 是软件里的对话角色，不能替代现实中的关系和陪伴。</p>
+            <p><strong className="text-zinc-800 dark:text-zinc-100">隐私：</strong>消息会发给你选择的服务商处理，请不要放入身份证、银行卡等敏感信息。</p>
             <label className="mt-3 flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"

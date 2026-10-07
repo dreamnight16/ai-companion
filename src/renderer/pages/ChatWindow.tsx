@@ -55,7 +55,7 @@ export default function ChatWindow() {
   if (showWeChat) return <WeChatSetup onBack={() => setShowWeChat(false)} />;
 
   const name = (profile?.name as string) || "V-Partner";
-  const placeholder = queueSize > 0 ? `还有 ${queueSize} 条排队中...` : pending ? "可继续输入，稍后一起发送..." : "输入消息... (Enter 发送)";
+  const placeholder = queueSize > 0 ? `还有 ${queueSize} 条消息排队` : pending ? "可以继续写，稍后一起发出" : "想聊点什么？按 Enter 发送";
   const canSend = draft.trim().length > 0;
 
   const handleSend = () => {
@@ -65,28 +65,28 @@ export default function ChatWindow() {
   };
 
   const sidebarItem = (icon: React.ReactNode, label: string, onClick: () => void) => (
-    <button onClick={onClick} className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-lg transition-colors text-muted-foreground hover:text-foreground hover:bg-muted" style={{ WebkitAppRegion: "no-drag" }}>
-      <span style={{ width: 24, display: "flex", justifyContent: "center", flexShrink: 0 }}>{icon}</span><span>{label}</span>
+    <button onClick={onClick} aria-label={label} title={label} className="companion-sidebar-item flex items-center gap-3 w-full px-4 py-3 rounded-xl text-lg transition-colors text-muted-foreground hover:text-foreground hover:bg-muted" style={{ WebkitAppRegion: "no-drag" }}>
+      <span style={{ width: 24, display: "flex", justifyContent: "center", flexShrink: 0 }}>{icon}</span><span className="companion-sidebar-label">{label}</span>
     </button>
   );
 
   return (
     <Flex height="100vh" className="page-enter" style={{ background: "transparent" }}>
       <UpdateToast />
-      <nav className="glass-shine" style={{ width: 220, flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", WebkitAppRegion: "drag", paddingTop: 44, borderRadius: 0, border: "none", borderRight: "1px solid rgba(255,255,255,0.15)" }}>
+      <nav className="companion-sidebar glass-shine" style={{ width: 220, flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", WebkitAppRegion: "drag", paddingTop: 44, borderRadius: 0, border: "none", borderRight: "1px solid var(--border)" }}>
         <div style={{ padding: "20px 16px 12px", WebkitAppRegion: "no-drag" }}>
           <Flex direction="column" align="center" gap="3">
             <div style={{ width: 56, height: 56, borderRadius: "50%", overflow: "hidden", cursor: "pointer", background: "var(--accent-3)", border: "2px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center" }}
               onClick={async () => { try { const d = await window.api.pickAvatar(); if (d) setAvatarData(d as string); } catch { /* ignore */ } }}>
               {avatarData ? <img src={avatarData} alt="avatar" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <Heart size={24} style={{ color: "var(--primary)" }} fill="currentColor" />}
             </div>
-            <Text size="3" weight="medium">{name}</Text>
-            <Text size="1" color="gray">{time}</Text>
+            <Text size="3" weight="medium" className="profile-name">{name}</Text>
+            <Text size="1" color="gray" className="profile-time">{time}</Text>
             {composing && <Text size="1" color="gray" style={{ marginTop: 4 }}>对方正在输入...</Text>}
           </Flex>
         </div>
         {currentModel && (
-          <div style={{ padding: "0 16px 12px", WebkitAppRegion: "no-drag" }}>
+          <div className="companion-model-switcher" style={{ padding: "0 16px 12px", WebkitAppRegion: "no-drag" }}>
             <button onClick={async () => {
               const prev = currentModel;
               const provider = currentModel.includes("claude") ? "anthropic" : currentModel.includes("gpt") ? "openai" : null;
@@ -107,12 +107,12 @@ export default function ChatWindow() {
         <Text size="1" color="gray" align="center" style={{ padding: "12px 0", WebkitAppRegion: "no-drag" }}>v{appVersion || "0.0.0"}</Text>
       </nav>
 
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div className="companion-main" style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <div style={{ flex: 1, overflowY: "auto", maxWidth: 768, margin: "16px auto 24px", width: "100%", padding: "0 16px" }}>
           <MessageList messages={messages} typing={typing} composing={composing} messagesEndRef={messagesEndRef} onRegenerate={regenerate} />
         </div>
         <div style={{ maxWidth: 768, margin: "0 auto 16px", width: "100%", padding: "0 16px" }}>
-          <div className="glass-shine" style={{ display: "flex", alignItems: "center", padding: "8px 8px 8px 16px", borderRadius: 16 }}>
+          <div className="glass-shine" style={{ position: "relative", display: "flex", alignItems: "center", padding: "8px 8px 8px 16px", borderRadius: 16 }}>
             <textarea value={draft}
               onChange={(e) => { setDraft(e.target.value); onTypingActivity(); const el = e.target; el.style.height = "auto"; el.style.height = Math.min(el.scrollHeight, 96) + "px"; }}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}

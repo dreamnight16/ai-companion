@@ -164,14 +164,14 @@ async function main() {
   // Q5: 关系模式（含风险声明）
   console.log("? 你希望怎么开始你们的关系？");
   console.log("  [1] 直接成为情侣 — 上来就是恋人，甜蜜日常");
-  console.log("  [2] 养成模式 — 从陌生人开始，像真实的人际关系一样慢慢培养感情");
+  console.log("  [2] 养成模式 — 从陌生人开始，慢慢找到适合你们的相处方式");
   console.log("");
   console.log("  ┌─────────────────────────────────────────┐");
   console.log("  │  ⚠️  重要风险提示（请务必阅读）          │");
   console.log("  ├─────────────────────────────────────────┤");
   console.log("  │ 作者声明:                                │");
   console.log("  │ · 作者: 梦夜十六                        │");
-  console.log("  │ · AI生成内容不代表作者立场               │");
+  console.log("  │ · 模型生成内容不代表作者立场             │");
   console.log("  │ · 本软件仅供学习和娱乐，请合理使用       │");
   console.log("  │ · 因使用本软件产生的任何后果由用户自担   │");
   console.log("  │                                          │");
@@ -182,16 +182,16 @@ async function main() {
   console.log("  │ · 微信接入同样存在封号风险               │");
   console.log("  │                                          │");
   console.log("  │ 费用:                                    │");
-  console.log("  │ · AI API 按量计费，频繁聊天会产生费用    │");
-  console.log("  │ · 请了解所选 AI 服务商的价格             │");
+  console.log("  │ · 模型服务可能按量计费，聊得多花得多      │");
+  console.log("  │ · 请先看清所选服务商的价格               │");
   console.log("  │                                          │");
   console.log("  │ 情感健康:                                │");
-  console.log("  │ · TA 是AI，不能替代真实的人际关系         │");
+  console.log("  │ · TA 是软件里的角色，不能替代现实关系     │");
   console.log("  │ · 请保持现实生活中的人际交往             │");
   console.log("  │ · 如果发现自己过度依赖，请适度暂停       │");
   console.log("  │                                          │");
   console.log("  │ 隐私:                                    │");
-  console.log("  │ · 聊天内容会发送给AI服务商处理           │");
+  console.log("  │ · 聊天内容会发给你选择的模型服务商处理    │");
   console.log("  │ · 请勿透露身份证/银行卡/住址等敏感信息   │");
   console.log("  │ · 对话记录存储在本地，请自行保管好       │");
   console.log("  │                                          │");
@@ -263,7 +263,7 @@ async function main() {
   const memeStyle = memeStyles[memeChoice] || memeStyles["1"];
 
   // Q10: AI 服务商
-  console.log("? AI 服务商？");
+  console.log("? 选择模型服务？");
   console.log("  [1] Claude (Anthropic)");
   console.log("  [2] OpenAI (GPT 系列)");
   console.log("  [3] 其他兼容接口 (DeepSeek / 硅基流动 / 等)");

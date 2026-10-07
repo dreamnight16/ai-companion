@@ -2,28 +2,30 @@
 
 # Yumema (梦间)
 
-[![Release](https://img.shields.io/badge/release-v0.1.1-blue)](https://github.com/dreamnight16/ai-companion/releases)
+[![Release](https://img.shields.io/badge/release-v0.2.2-blue)](https://github.com/dreamnight16/ai-companion/releases)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey)]()
 
-> In the space between dreams and reality, they've always been there.
+> A quiet desktop space for conversation, memory, and the routines you choose.
 
-An AI companion that lives on your desktop. Has a personality, hobbies, and memory. Chat in-app, through QQ, or via WeChat. Install, fill out the wizard, done.
+A desktop companion built around a configurable language model. Define a profile,
+keep a local conversation history, and connect in-app, through QQ, or via WeChat.
+Install it, complete the setup, and start a conversation.
 
-**Current version: v0.1.1**
+**Current version: v0.2.2**
 
 ---
 
 ## Features
 
 - **Desktop App** — macOS / Windows / Linux, double-click to install, auto-update
-- **Guided Setup** — 14-step wizard, 2 minutes to configure
+- **Guided Setup** — 16-step wizard for profile, model, and channel settings
 - **Direct Chat** — In-app chat with instant-messaging style bubbles
 - **QQ Bot** — Connect to QQ groups/DMs, QR code login
 - **WeChat Bot** — Connect to WeChat DMs/groups, one-click Docker launch in-app
-- **Full Personality** — Age, occupation, hobbies, emotions, opinions — feels real
+- **Configurable Profile** — Age, occupation, hobbies, speaking style, and routines
 - **Time Awareness** — Knows morning/evening, weekends, holidays, initiates greetings
 - **Memory System** — Remembers frequent topics, forgets stale ones
-- **Relationship Building** — Start as lovers or grow from strangers
+- **Relationship Settings** — Choose the starting mode and adjust it over time
 - **Safety Filtering** — Sensitive content filtering, privacy protection
 - **Feedback Loop** — Built-in survey for product improvement
 
@@ -31,7 +33,7 @@ An AI companion that lives on your desktop. Has a personality, hobbies, and memo
 
 ## Version Status
 
-**v0.1.1** — Current beta release. Features are actively iterating. Feedback welcome via the in-app survey.
+**v0.2.2** — Current beta release. Features are actively iterating. Feedback welcome via the in-app survey.
 
 ---
 

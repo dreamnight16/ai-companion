@@ -18,7 +18,7 @@ export default function UserGenderStep({
     <Flex direction="column" gap="8">
       <Flex direction="column" gap="2">
         <h2 className="text-lg font-semibold">你的性别是？</h2>
-        <p className="text-sm text-muted-foreground">用于 AI 对你的称呼和代词引用</p>
+        <p className="text-sm text-muted-foreground">决定对话里怎么称呼你、使用哪些代词</p>
       </Flex>
       <CardSelect
         options={options}

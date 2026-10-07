@@ -26,7 +26,7 @@ export default function SummaryStep({
     ["时区", data.timezone as string],
     ["城市", data.userCity as string],
     ["称呼", data.nickname as string],
-    ["AI 服务商", data.aiProvider as string],
+    ["模型服务", data.aiProvider as string],
     ["QQ", qqLabel],
     ["微信", wechatLabel],
   ] as Array<[string, string]>).filter(([, v]) => v);

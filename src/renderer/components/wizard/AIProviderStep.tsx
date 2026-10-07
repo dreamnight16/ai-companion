@@ -5,9 +5,10 @@ import { Slider } from "../ui/slider";
 import CardSelect from "../shared/CardSelect";
 
 const PROVIDERS = [
-  { value: "anthropic" as const, label: "Claude (Anthropic)", desc: "推荐 — 擅长中文、细腻的对话风格" },
-  { value: "openai" as const, label: "OpenAI (GPT 系列)", desc: "功能强大、响应迅速" },
-  { value: "openai-compatible" as const, label: "其他兼容接口", desc: "DeepSeek / 硅基流动 / 等" },
+  { value: "anthropic" as const, label: "Claude (Anthropic)", desc: "适合中文对话、总结和较长的上下文" },
+  { value: "openai" as const, label: "OpenAI (GPT 系列)", desc: "生态成熟，适合日常对话和通用任务" },
+  { value: "openai-compatible" as const, label: "其他兼容接口", desc: "可接入 DeepSeek、硅基流动等服务" },
+  { value: "ollama" as const, label: "Ollama（本地）", desc: "模型运行在自己的设备上，可不填密钥" },
 ];
 
 const ANTHROPIC_MODELS = [
@@ -49,12 +50,13 @@ interface Props {
 
 export default function AIProviderStep({ data, update }: Props) {
   const models = getModels(data.aiProvider);
+  const isCustomProvider = data.aiProvider === "openai-compatible" || data.aiProvider === "ollama";
 
   return (
     <Flex direction="column" gap="8">
       <Flex direction="column" gap="2">
-        <h2 className="text-lg font-semibold">选择 AI 服务商</h2>
-        <p className="text-sm text-muted-foreground">TA 的智能由你选择的 AI 驱动</p>
+        <h2 className="text-lg font-semibold">选择模型服务</h2>
+        <p className="text-sm text-muted-foreground">模型只负责生成回复，资料、记忆和聊天记录仍由本地应用管理。</p>
       </Flex>
 
       <CardSelect
@@ -65,7 +67,7 @@ export default function AIProviderStep({ data, update }: Props) {
 
       <Flex direction="column" gap="3">
         {/* Model Select */}
-        {data.aiProvider !== "openai-compatible" && models.length > 0 && (
+        {!isCustomProvider && models.length > 0 && (
           <Field label="模型">
             <Select
               value={data.aiModel}
@@ -88,34 +90,34 @@ export default function AIProviderStep({ data, update }: Props) {
           </Field>
         )}
 
-        {data.aiProvider === "openai-compatible" && (
+        {isCustomProvider && (
           <Field label="模型名称">
             <Input
               type="text"
               value={data.aiModel}
               onChange={(e) => update({ aiModel: e.target.value })}
-              placeholder="deepseek-chat / gpt-4o-mini / ..."
+              placeholder={data.aiProvider === "ollama" ? "qwen3.5:9b / llama3" : "deepseek-chat / gpt-4o-mini / ..."}
             />
           </Field>
         )}
 
-        <Field label="API Key">
+        <Field label={data.aiProvider === "ollama" ? "API Key（可选）" : "API Key"}>
           <Input
             type="password"
             value={data.aiApiKey}
             onChange={(e) => update({ aiApiKey: e.target.value })}
-            placeholder="sk-..."
+            placeholder={data.aiProvider === "ollama" ? "本地 Ollama 通常无需密钥" : "sk-..."}
           />
         </Field>
 
-        {data.aiProvider === "openai-compatible" && (
+        {isCustomProvider && (
           <div className="fade-in">
             <Field label="API 地址">
               <Input
                 type="text"
                 value={data.aiBaseUrl}
                 onChange={(e) => update({ aiBaseUrl: e.target.value })}
-                placeholder="https://api.deepseek.com"
+                placeholder={data.aiProvider === "ollama" ? "http://localhost:11434/v1" : "https://api.deepseek.com"}
               />
             </Field>
           </div>

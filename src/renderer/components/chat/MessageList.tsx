@@ -116,7 +116,7 @@ const MessageList = memo(function MessageList({
             border: "1px solid rgba(255,255,255,0.3)",
             borderRadius: "16px 16px 16px 4px",
           }}>
-            <span style={{ fontSize: 12, color: "var(--muted-foreground)", marginRight: 8 }}>对方正在输入...</span>
+            <span style={{ fontSize: 12, color: "var(--muted-foreground)", marginRight: 8 }}>正在想怎么回复...</span>
             <span className="bounce-dot" />
             <span className="bounce-dot" style={{ marginLeft: 4 }} />
             <span className="bounce-dot" style={{ marginLeft: 4 }} />

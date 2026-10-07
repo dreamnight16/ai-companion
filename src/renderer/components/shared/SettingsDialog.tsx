@@ -220,7 +220,7 @@ export default function SettingsDialog({ onClose }: { onClose: () => void }) {
 
           <Tabs.Root defaultValue="ai" style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
             <Tabs.List mx="5" className="glass-shine rounded-xl p-2">
-              <Tabs.Trigger value="ai" className="px-4 py-2">AI 配置</Tabs.Trigger>
+              <Tabs.Trigger value="ai" className="px-4 py-2">模型服务</Tabs.Trigger>
               <Tabs.Trigger value="memory" className="px-4 py-2">记忆</Tabs.Trigger>
               <Tabs.Trigger value="character" className="px-4 py-2">角色卡</Tabs.Trigger>
               <Tabs.Trigger value="data" className="px-4 py-2">数据</Tabs.Trigger>
@@ -329,7 +329,7 @@ export default function SettingsDialog({ onClose }: { onClose: () => void }) {
                   </Flex>
 
                   <Button onClick={handleAiSave} disabled={aiSaving || (aiProvider !== "ollama" && !aiApiKey.trim() && !hasApiKey)}>
-                    {aiSaved ? "已保存" : "保存 AI 配置"}
+                    {aiSaved ? "已保存" : "保存模型配置"}
                   </Button>
                   {aiError && (
                     <Text size="1" style={{ color: "var(--red-9)" }}>{aiError}</Text>
@@ -611,7 +611,7 @@ export default function SettingsDialog({ onClose }: { onClose: () => void }) {
 
                   <Flex direction="column" gap="4" mt="3">
                     <Text size="1" color="gray">
-                      重置将删除所有数据，包括角色卡、AI 配置、聊天记录和记忆数据。操作后需要重新进行初始化设置。
+                      重置将删除所有数据，包括角色卡、模型配置、聊天记录和记忆数据。操作后需要重新进行初始化设置。
                     </Text>
 
                     {resetStep === 0 && (
@@ -673,7 +673,7 @@ export default function SettingsDialog({ onClose }: { onClose: () => void }) {
 
                 <Flex direction="column" gap="3" style={{ borderTop: "1px solid var(--gray-4)", paddingTop: 16 }}>
                   <Text size="1" color="gray" align="center">
-                    AI 伴侣桌面应用 — 基于 Electron + React 构建
+                    桌面伴侣应用 · 基于 Electron + React 构建
                   </Text>
                   <Flex direction="column" gap="1" align="center" style={{ borderTop: "1px solid var(--gray-4)", paddingTop: 12 }}>
                     <Text size="1" color="gray">作者：梦夜十六</Text>
@@ -683,7 +683,7 @@ export default function SettingsDialog({ onClose }: { onClose: () => void }) {
                   </Flex>
                   <Text size="1" color="gray" align="center" style={{ borderTop: "1px solid var(--gray-4)", paddingTop: 12 }}>
                     Copyright (c) 2026 DreamNight<br />
-                    AI 生成内容不代表作者立场
+                    对话内容由所选模型生成，请自行判断
                   </Text>
                 </Flex>
               </Tabs.Content>

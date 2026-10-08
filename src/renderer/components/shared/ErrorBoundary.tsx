@@ -11,6 +11,7 @@ interface State {
   error: string;
 }
 
+/** 错误兜底 —— 明确的状态色块 + 可读的原因，不使用装饰性容器 */
 export default class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
@@ -27,23 +28,21 @@ export default class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
+      if (this.props.fallback) return this.props.fallback;
       return (
-        this.props.fallback ?? (
-          <div className="h-screen flex items-center justify-center bg-background">
-            <div className="text-center space-y-3 scale-in max-w-xs">
-              <div
-                className="w-14 h-14 mx-auto rounded-2xl flex items-center justify-center"
-                style={{ background: "var(--vp-error-soft)" }}
-              >
-                <AlertTriangle className="w-7 h-7 text-destructive" />
-              </div>
-              <h2 className="text-base font-semibold">出错了</h2>
-              <p className="text-xs text-muted-foreground break-words">
-                {this.state.error || "未知错误"}
-              </p>
-            </div>
-          </div>
-        )
+        <div className="ym-notfound">
+          <span className="ym-state-block ym-state-block--danger" role="alert">
+            <AlertTriangle size={22} aria-hidden="true" />
+            <span className="ym-state-block__title">界面出错了</span>
+          </span>
+          <p className="ym-kicker">错误详情</p>
+          <p className="ym-notfound__text" style={{ wordBreak: "break-word" }}>
+            {this.state.error || "未知错误"}
+          </p>
+          <p className="ym-note">
+            可以重启应用重试。如果反复出现，请在侧栏打开反馈并描述复现步骤。
+          </p>
+        </div>
       );
     }
     return this.props.children;

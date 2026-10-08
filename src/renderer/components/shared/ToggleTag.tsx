@@ -1,6 +1,20 @@
 import type { ReactNode } from "react";
+import { Check } from "lucide-react";
 
-type TagVariant = "primary" | "destructive" | "violet" | "amber" | "rose";
+/**
+ * 可选标签 —— DNDL 直角 + 品牌实色。
+ * 选中状态同时用「填充色块 + 前置勾选标记 + aria-pressed」表达，不只靠颜色。
+ */
+type TagVariant = "primary" | "destructive" | "violet" | "amber" | "rose" | "emerald";
+
+const variantClass: Record<TagVariant, string> = {
+  primary: "ym-tag--primary",
+  destructive: "ym-tag--crimson",
+  violet: "ym-tag--violet",
+  amber: "ym-tag--amber",
+  rose: "ym-tag--orange",
+  emerald: "ym-tag--emerald",
+};
 
 interface ToggleTagProps {
   active: boolean;
@@ -9,20 +23,6 @@ interface ToggleTagProps {
   variant?: TagVariant;
   size?: "sm" | "md" | "lg";
 }
-
-const sizeMap = {
-  sm: "px-3 py-1.5 text-xs",
-  md: "px-4 py-2 text-sm",
-  lg: "px-5 py-2.5 text-sm",
-};
-
-const activeClasses: Record<TagVariant, string> = {
-  primary: "bg-primary text-primary-foreground border-primary",
-  destructive: "bg-destructive text-destructive-foreground border-destructive",
-  violet: "bg-violet-500 text-white border-violet-500",
-  amber: "bg-amber-500 text-white border-amber-500",
-  rose: "bg-rose-500 text-white border-rose-500",
-};
 
 export default function ToggleTag({
   active,
@@ -33,14 +33,17 @@ export default function ToggleTag({
 }: ToggleTagProps) {
   return (
     <button
+      type="button"
+      aria-pressed={active}
       onClick={onClick}
-      className={`rounded-lg font-medium transition-all active:scale-95 border ${sizeMap[size]} ${
-        active
-          ? activeClasses[variant]
-          : "bg-secondary text-muted-foreground border-border hover:bg-muted"
-      }`}
+      className={[
+        "ym-tag ym-focus",
+        `ym-tag--${size}`,
+        active ? variantClass[variant] : "ym-tag--idle",
+      ].join(" ")}
     >
-      {children}
+      {active && <Check size={14} aria-hidden="true" />}
+      <span>{children}</span>
     </button>
   );
 }

@@ -7,6 +7,25 @@
 > Development follows `0.x`; the `v1.0.0-beta.*` tags are historical and no longer maintained.
 > `package.json` reflects the latest stable `0.x` tag.
 
+## [0.3.0] - 2026-10-08
+
+### Added — DreamNight Design Language (DNDL v1.0)
+
+- **Brand adoption**: the interface was redesigned against DNDL v1.0 (implementation 1.1.0).
+  `tokens.css`, `materials.css`, `motion.css` and `LICENSE` are vendored verbatim at a pinned
+  version with a `VERSION` provenance file, keeping the files side by side. No brand value was
+  modified in place.
+- **Geometry & typography**: square corners, large brand colour fields, and display-scale type
+  instead of decorative container stacking.
+- **Legibility**: text on colour fields uses `--dn-text-on-color`; secondary small text on light
+  backgrounds uses `--dn-text-secondary`. Contrast was measured per WCAG rather than dimmed with
+  element-level opacity.
+- **Accessibility**: interactive targets use `--dn-target-min`; focus is visible; supports
+  `prefers-reduced-motion`, transparency-off and `forced-colors` fallbacks; state is no longer
+  conveyed by colour alone.
+- **Information architecture**: page structure and navigation were rebuilt around the product's
+  real content rather than recoloured.
+
 ## v0.2.3 (2026-10-08)
 
 - **Mobile app**: standalone React Native app in `mobile/` (RNFS StorageAdapter, AsyncStorage KVStore, 8-step setup wizard, FlatList chat UI, dark mode, memory management)

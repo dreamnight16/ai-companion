@@ -1,5 +1,5 @@
-import { useState, useCallback, memo } from "react";
-import { Heart, Smile, ThumbsUp, ThumbsDown } from "lucide-react";
+import { useState, useCallback, memo, useEffect, useRef } from "react";
+import { Heart, Smile, ThumbsUp, ThumbsDown, MoreHorizontal } from "lucide-react";
 import type { ChatMessage } from "../../hooks/useChat";
 import { Avatar, AvatarFallback } from "../ui/Avatar";
 
@@ -9,6 +9,10 @@ function formatTime(iso: string): string {
   return d.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
 }
 
+/**
+ * 消息 —— 用户消息是品牌 Teal 实色色块，伴侣消息是 Surface +
+ * 左侧 Cyan 量尺。两者都是直角，用色彩与位置区分说话人。
+ */
 const MessageBubble = memo(function MessageBubble({
   message, showAvatar, canRegenerate, onRegenerate,
 }: {
@@ -19,10 +23,27 @@ const MessageBubble = memo(function MessageBubble({
 }) {
   const isPartner = message.role === "partner";
   const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
-  const [showFeedback, setShowFeedback] = useState(false);
   const [showCorrection, setShowCorrection] = useState(false);
   const [correctionText, setCorrectionText] = useState("");
   const [feedbackSent, setFeedbackSent] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const moreRef = useRef<HTMLButtonElement>(null);
+
+  const closeMenu = useCallback(() => {
+    setMenuPos(null);
+    moreRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    if (!menuPos) return;
+    const first = menuRef.current?.querySelector<HTMLButtonElement>("button");
+    first?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") { e.stopPropagation(); closeMenu(); }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [menuPos, closeMenu]);
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     if (!canRegenerate || !onRegenerate) return;
@@ -39,12 +60,8 @@ const MessageBubble = memo(function MessageBubble({
     if (feedbackSent) return;
     setFeedbackSent(true);
     try {
-      await window.api.submitFeedback({
-        type,
-        userMessage: "",
-        aiReply: message.content,
-      });
-    } catch { /* ignore */ }
+      await window.api.submitFeedback({ type, userMessage: "", aiReply: message.content });
+    } catch { /* 反馈失败不影响继续聊天 */ }
     if (type === "thumbs_down") setShowCorrection(true);
   }, [feedbackSent, message.content]);
 
@@ -60,157 +77,117 @@ const MessageBubble = memo(function MessageBubble({
         aiReply: message.content,
         correctionText: correctionText.trim(),
       });
-    } catch { /* ignore */ }
+    } catch { /* 反馈失败不影响继续聊天 */ }
     setShowCorrection(false);
     setCorrectionText("");
   }, [correctionText, message.content]);
 
+  const exportChat = useCallback(async (format: "txt" | "md") => {
+    setMenuPos(null);
+    await window.api.exportChat(format);
+  }, []);
+
   return (
     <>
       <div
-        className="float-up"
-        style={{
-          display: "flex",
-          alignItems: "flex-start",
-          gap: 8,
-          padding: "8px 0",
-          flexDirection: isPartner ? "row" : "row-reverse",
-        }}
+        className={`ym-msg ${isPartner ? "ym-msg--partner" : "ym-msg--user"}`}
         onContextMenu={handleContextMenu}
       >
-        <div style={{ flexShrink: 0, marginTop: 4 }} aria-hidden="true">
+        <div className="ym-msg__avatar" aria-hidden="true">
           {showAvatar ? (
-            <Avatar
-              style={{
-                width: 32, height: 32,
-                background: isPartner ? "var(--vp-primary-soft)" : "var(--muted)",
-              }}
-            >
+            <Avatar style={{
+              width: 32, height: 32,
+              background: isPartner ? "var(--ym-teal-tint)" : "var(--ym-tint-strong)",
+            }}>
               <AvatarFallback className="bg-transparent">
                 {isPartner
-                  ? <Heart size={16} style={{ color: "var(--primary)" }} fill="currentColor" />
-                  : <Smile size={16} />
-                }
+                  ? <Heart size={16} style={{ color: "var(--dn-teal)" }} fill="currentColor" />
+                  : <Smile size={16} />}
               </AvatarFallback>
             </Avatar>
-          ) : (
-            <div style={{ width: 32 }} />
-          )}
+          ) : <div style={{ width: 32 }} />}
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            maxWidth: "75%",
-            alignItems: isPartner ? "flex-start" : "flex-end",
-          }}
-          onMouseEnter={() => isPartner && setShowFeedback(true)}
-          onMouseLeave={() => { setShowFeedback(false); setShowCorrection(false); }}
-        >
-          <div
-            style={{
-              padding: "12px 16px",
-              fontSize: 16,
-              lineHeight: 1.65,
-              wordBreak: "break-word",
-              background: isPartner
-                ? "var(--vp-bubble-partner-glass)"
-                : "var(--vp-bubble-user-glass)",
-              backdropFilter: "blur(8px)",
-              WebkitBackdropFilter: "blur(8px)",
-              color: isPartner ? "var(--vp-bubble-partner-text)" : "var(--vp-bubble-user-text)",
-              borderRadius: isPartner
-                ? "16px 16px 16px 4px"
-                : "16px 16px 4px 16px",
-              border: isPartner ? "1px solid rgba(255,255,255,0.3)" : "1px solid rgba(255,255,255,0.35)",
-              boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
-            }}
-          >
-            {message.content}
+        <div className="ym-msg__col">
+          <p className="ym-msg__bubble">{message.content}</p>
+
+          <div className="ym-msg__meta">
+            {showAvatar && (
+              <time className="ym-kicker" dateTime={message.time}>{formatTime(message.time)}</time>
+            )}
+
+            {isPartner && canRegenerate && (
+              <div className="ym-msg__actions">
+                {!feedbackSent && (
+                  <>
+                    <button type="button" className="ym-icon-btn ym-icon-btn--sm ym-focus"
+                      onClick={() => submitFeedback("thumbs_up")} aria-label="这条回复很好" title="这条回复很好">
+                      <ThumbsUp size={15} aria-hidden="true" />
+                    </button>
+                    <button type="button" className="ym-icon-btn ym-icon-btn--sm ym-focus"
+                      onClick={() => submitFeedback("thumbs_down")} aria-label="这条回复需要改进" title="这条回复需要改进">
+                      <ThumbsDown size={15} aria-hidden="true" />
+                    </button>
+                  </>
+                )}
+                {feedbackSent && !showCorrection && <span className="ym-kicker">已记录反馈</span>}
+                <button
+                  ref={moreRef}
+                  type="button"
+                  className="ym-icon-btn ym-icon-btn--sm ym-focus"
+                  aria-haspopup="menu"
+                  aria-expanded={menuPos !== null}
+                  onClick={(e) => {
+                    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                    setMenuPos({ x: r.left, y: r.bottom + 4 });
+                  }}
+                  aria-label="更多操作"
+                  title="更多操作"
+                >
+                  <MoreHorizontal size={15} aria-hidden="true" />
+                </button>
+              </div>
+            )}
           </div>
 
-          {isPartner && showFeedback && !feedbackSent && (
-            <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
-              <button
-                onClick={() => submitFeedback("thumbs_up")}
-                className="p-1 rounded hover:bg-muted transition-colors"
-                aria-label="点赞"
-              >
-                <ThumbsUp size={16} style={{ color: "var(--muted-foreground)" }} />
-              </button>
-              <button
-                onClick={() => submitFeedback("thumbs_down")}
-                className="p-1 rounded hover:bg-muted transition-colors"
-                aria-label="踩"
-              >
-                <ThumbsDown size={16} style={{ color: "var(--muted-foreground)" }} />
-              </button>
-            </div>
-          )}
-
           {showCorrection && (
-            <div style={{ display: "flex", gap: 4, marginTop: 4, width: "100%" }}>
-              <input
-                value={correctionText}
-                onChange={(e) => setCorrectionText(e.target.value)}
-                placeholder="你更希望它怎么说？"
-                className="flex-1 px-2 py-1 text-xs rounded border border-border bg-background"
-                onKeyDown={(e) => { if (e.key === "Enter") submitCorrection(); }}
-                autoFocus
-              />
-              <button
-                onClick={submitCorrection}
-                className="px-2 py-1 text-xs rounded bg-primary text-primary-foreground"
-              >
-                发送
-              </button>
+            <div className="ym-correction">
+              <label className="ym-kicker" htmlFor={`ym-correction-${message.time}`}>希望 TA 怎么说</label>
+              <div className="ym-correction__row">
+                <input
+                  id={`ym-correction-${message.time}`}
+                  value={correctionText}
+                  onChange={(e) => setCorrectionText(e.target.value)}
+                  placeholder="写下你更希望的说法"
+                  className="ym-field ym-focus"
+                  onKeyDown={(e) => { if (e.key === "Enter") submitCorrection(); }}
+                />
+                <button type="button" onClick={submitCorrection} className="ym-btn ym-btn--primary ym-btn--sm ym-focus">
+                  发送
+                </button>
+              </div>
             </div>
-          )}
-
-          {showAvatar && (
-            <time style={{
-              fontSize: 12,
-              marginTop: 8,
-              padding: "0 8px",
-              fontFamily: "var(--vp-font-mono)",
-              color: "var(--muted-foreground)",
-            }}>
-              {formatTime(message.time)}
-            </time>
           )}
         </div>
       </div>
 
       {menuPos && (
         <>
-          <div className="fixed inset-0 z-50" onClick={() => setMenuPos(null)} />
+          <div className="ym-menu-scrim" onClick={closeMenu} />
           <div
-            className="fixed z-50 rounded-lg border border-border bg-popover shadow-lg py-2 min-w-[120px]"
+            ref={menuRef}
+            role="menu"
+            aria-label="消息操作"
+            className="ym-menu dn-acrylic dn-elevation-3"
             style={{ left: menuPos.x, top: menuPos.y }}
           >
-            <button
-              className="w-full px-3 py-2 text-xs text-left hover:bg-muted transition-colors"
-              onClick={handleRegenerate}
-            >
+            <button type="button" role="menuitem" className="ym-menu__item ym-focus" onClick={handleRegenerate}>
               重新生成
             </button>
-            <button
-              className="w-full px-3 py-2 text-xs text-left hover:bg-muted transition-colors"
-              onClick={async () => {
-                setMenuPos(null);
-                await window.api.exportChat("txt");
-              }}
-            >
+            <button type="button" role="menuitem" className="ym-menu__item ym-focus" onClick={() => exportChat("txt")}>
               导出 TXT
             </button>
-            <button
-              className="w-full px-3 py-2 text-xs text-left hover:bg-muted transition-colors"
-              onClick={async () => {
-                setMenuPos(null);
-                await window.api.exportChat("md");
-              }}
-            >
+            <button type="button" role="menuitem" className="ym-menu__item ym-focus" onClick={() => exportChat("md")}>
               导出 Markdown
             </button>
           </div>

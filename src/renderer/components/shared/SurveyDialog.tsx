@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { Flex, Text, Dialog } from "@radix-ui/themes";
-import Button from "../ui/Button";
-import { GlassCard, CardHeader } from "../ui/GlassCard";
+import * as Dialog from "@radix-ui/react-dialog";
+import { X } from "lucide-react";
 import ToggleTag from "../shared/ToggleTag";
 
 const STORAGE_KEY = "yumema_survey";
@@ -14,7 +13,6 @@ export function shouldShowSurvey(): boolean {
     if (data.dismissed) {
       const dismissedAt = data.dismissedAt || 0;
       if (Date.now() - dismissedAt < DISMISS_DURATION) return false;
-      // Reset after 30 days
       data.dismissed = false;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     }
@@ -31,16 +29,17 @@ export function incrementMsgCount() {
     data.msgCount = (data.msgCount || 0) + 1;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   } catch {
-    // ignore
+    // 本地计数失败不影响聊天
   }
 }
 
-const EMOJI_RATINGS = [
-  { value: 1, emoji: "😞", label: "很差" },
-  { value: 2, emoji: "😕", label: "不太好" },
-  { value: 3, emoji: "😐", label: "一般" },
-  { value: 4, emoji: "😊", label: "不错" },
-  { value: 5, emoji: "😍", label: "很棒" },
+/** 满意度量表：数字 + 文字标签，键盘可用，不只靠颜色或图形 */
+const RATINGS = [
+  { value: 1, label: "很差" },
+  { value: 2, label: "不太好" },
+  { value: 3, label: "一般" },
+  { value: 4, label: "不错" },
+  { value: 5, label: "很棒" },
 ];
 
 const FEATURES = ["应用内聊天", "QQ 机器人", "微信机器人"];
@@ -77,7 +76,7 @@ export default function SurveyDialog({ onClose }: { onClose: () => void }) {
         notes,
       });
     } catch {
-      // ignore — data saved locally even if IPC fails
+      // 反馈即便发送失败也保留本地状态，避免重复打扰
     }
     try {
       const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
@@ -101,127 +100,125 @@ export default function SurveyDialog({ onClose }: { onClose: () => void }) {
     onClose();
   };
 
-  if (submitted) {
-    return (
-      <Dialog.Root open onOpenChange={() => onClose()}>
-      <Dialog.Content style={{ padding: 0, background: "transparent", maxWidth: 448 }}>
-        <GlassCard padding="p-8">
-            <div className="text-center space-y-4">
-              <div style={{ fontSize: 48 }}>😍</div>
-              <h3 className="text-lg font-semibold">感谢你的反馈！</h3>
-              <p className="text-sm text-muted-foreground">
-                你的意见会帮助我们让 Yumema 变得更好
-              </p>
-              <Button variant="primary" onClick={onClose}>完成</Button>
-            </div>
-          </GlassCard>
-      </Dialog.Content>
-    </Dialog.Root>
-    );
-  }
-
   return (
-    <Dialog.Root open onOpenChange={() => onClose()}>
-      <Dialog.Content style={{ padding: 0, background: "transparent", maxWidth: 448 }}>
-        <GlassCard padding="p-0">
-          <CardHeader title="帮助我们改进" onClose={onClose} />
-          <div className="max-h-[70vh] overflow-y-auto">
-          <Flex direction="column" px="6" py="5" gap="4">
-            {/* Satisfaction */}
-            <GlassCard variant="solid" padding="p-4">
-              <div className="space-y-3">
-              <label className="text-sm font-medium">你对 Yumema 的整体感受？</label>
-              <div className="flex items-center justify-center gap-3">
-                {EMOJI_RATINGS.map((r) => (
-                  <button
-                    key={r.value}
-                    onClick={() => setSatisfaction(r.value)}
-                    className="flex flex-col items-center gap-2 transition-all"
-                    style={{
-                      transform: satisfaction === r.value ? "scale(1.25)" : "scale(1)",
-                      opacity: satisfaction === 0 || satisfaction === r.value ? 1 : 0.5,
-                      filter: satisfaction === 0 || satisfaction === r.value ? "none" : "grayscale(0.5)",
-                    }}
-                  >
-                    <span style={{ fontSize: 28 }}>{r.emoji}</span>
-                    <span className="text-xs text-muted-foreground">{r.label}</span>
-                  </button>
-                ))}
-                </div>
+    <Dialog.Root open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="ym-scrim" />
+        <Dialog.Content className="ym-dialog dn-acrylic dn-elevation-3">
+          <header className="ym-dialog__head">
+            <div>
+              <Dialog.Title className="ym-dialog__title">
+                {submitted ? "感谢你的反馈" : "帮助我们改进"}
+              </Dialog.Title>
+              <Dialog.Description className="ym-dialog__desc">
+                {submitted ? "反馈已经记录，会用于后续版本" : "关于使用体验的几个问题，都是选填"}
+              </Dialog.Description>
+            </div>
+            <Dialog.Close asChild>
+              <button type="button" className="ym-icon-btn ym-focus" aria-label="关闭反馈">
+                <X size={16} aria-hidden="true" />
+              </button>
+            </Dialog.Close>
+          </header>
+
+          {submitted ? (
+            <div className="ym-setup-panel">
+              <p className="ym-note">
+                你的意见会帮助我们让 Yumema 变得更好。如果还想补充，可以随时从侧栏重新打开反馈。
+              </p>
+              <button type="button" className="ym-btn ym-btn--primary ym-focus" onClick={onClose}>完成</button>
+            </div>
+          ) : (
+            <>
+              <div className="ym-setup-panel" style={{ overflowY: "auto" }}>
+                <section className="ym-form">
+                  <h3 className="ym-section-title">你对 Yumema 的整体感受？</h3>
+                  <div className="ym-rating" role="group" aria-label="整体满意度">
+                    {RATINGS.map((r) => (
+                      <ToggleTag
+                        key={r.value}
+                        active={satisfaction === r.value}
+                        onClick={() => setSatisfaction(r.value)}
+                        size="lg"
+                      >
+                        {r.value} · {r.label}
+                      </ToggleTag>
+                    ))}
+                  </div>
+                </section>
+
+                <section className="ym-form">
+                  <h3 className="ym-section-title">你主要使用哪些功能？</h3>
+                  <div className="ym-form__tags">
+                    {FEATURES.map((f) => (
+                      <ToggleTag key={f} active={features.includes(f)} onClick={() => toggle(features, setFeatures, f)}>
+                        {f}
+                      </ToggleTag>
+                    ))}
+                  </div>
+                </section>
+
+                <section className="ym-form">
+                  <h3 className="ym-section-title">遇到了哪些问题？</h3>
+                  <div className="ym-form__tags">
+                    {PROBLEMS.map((p) => (
+                      <ToggleTag key={p} active={problems.includes(p)} onClick={() => toggle(problems, setProblems, p)} variant="destructive">
+                        {p}
+                      </ToggleTag>
+                    ))}
+                  </div>
+                  <input
+                    type="text"
+                    aria-label="其他问题"
+                    value={otherProblem}
+                    onChange={(e) => setOtherProblem(e.target.value)}
+                    placeholder="其他问题..."
+                    className="ym-field ym-focus"
+                  />
+                </section>
+
+                <section className="ym-form">
+                  <h3 className="ym-section-title">缺少什么功能？</h3>
+                  <input
+                    type="text"
+                    aria-label="缺少的功能"
+                    value={missing}
+                    onChange={(e) => setMissing(e.target.value)}
+                    placeholder="例如：语音消息、多语言..."
+                    className="ym-field ym-focus"
+                  />
+                </section>
+
+                <section className="ym-form">
+                  <h3 className="ym-section-title">还有什么想说的？</h3>
+                  <textarea
+                    aria-label="补充说明"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="任何想法都可以告诉我们..."
+                    rows={3}
+                    className="ym-field ym-focus"
+                  />
+                </section>
               </div>
-            </GlassCard>
 
-            {/* Features */}
-            <Flex direction="column" gap="2">
-              <Text size="1" color="gray">你主要使用哪些功能？（多选）</Text>
-              <div className="flex flex-wrap gap-3">
-                {FEATURES.map((f) => (
-                  <ToggleTag key={f} active={features.includes(f)} onClick={() => toggle(features, setFeatures, f)}>
-                    {f}
-                  </ToggleTag>
-                ))}
+              <div className="ym-dialog__actions">
+                <button
+                  type="button"
+                  className="ym-btn ym-btn--primary ym-focus"
+                  onClick={handleSubmit}
+                  disabled={satisfaction === 0}
+                >
+                  提交反馈
+                </button>
+                <button type="button" className="ym-btn ym-btn--ghost ym-focus" onClick={handleDismiss}>
+                  不再提示
+                </button>
               </div>
-            </Flex>
-
-            {/* Problems */}
-            <Flex direction="column" gap="2">
-              <Text size="1" color="gray">遇到了哪些问题？（多选）</Text>
-              <div className="flex flex-wrap gap-3">
-                {PROBLEMS.map((p) => (
-                  <ToggleTag key={p} active={problems.includes(p)} onClick={() => toggle(problems, setProblems, p)} variant="destructive">
-                    {p}
-                  </ToggleTag>
-                ))}
-              </div>
-              <input
-                type="text"
-                value={otherProblem}
-                onChange={(e) => setOtherProblem(e.target.value)}
-                placeholder="其他问题..."
-                style={{ width: "100%", padding: "8px 12px", borderRadius: "var(--radius-3)", fontSize: 14, background: "var(--background)", border: "1px solid var(--input)", color: "var(--foreground)", outline: "none" }}
-              />
-            </Flex>
-
-            {/* Missing features */}
-            <Flex direction="column" gap="2">
-              <Text size="1" color="gray">缺少什么功能？（选填）</Text>
-              <input
-                type="text"
-                value={missing}
-                onChange={(e) => setMissing(e.target.value)}
-                placeholder="例如：语音消息、多语言..."
-                style={{ width: "100%", padding: "8px 12px", borderRadius: "var(--radius-3)", fontSize: 14, background: "var(--background)", border: "1px solid var(--input)", color: "var(--foreground)", outline: "none" }}
-              />
-            </Flex>
-
-            {/* Notes */}
-            <Flex direction="column" gap="2">
-              <Text size="1" color="gray">还有什么想说的？（选填）</Text>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="任何想法都可以告诉我们..."
-                rows={2}
-                className="w-full px-4 py-3 rounded-xl text-sm bg-background border border-input text-foreground outline-none resize-none placeholder:text-muted-foreground"
-              />
-            </Flex>
-          </Flex>
-
-          {/* Footer */}
-          <Flex px="6" pb="4" align="center" gap="3">
-            <Button variant="primary" className="flex-1 gradient-btn" onClick={handleSubmit} disabled={satisfaction === 0}>
-              提交反馈
-            </Button>
-            <button
-              onClick={handleDismiss}
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap"
-            >
-              不再提示
-            </button>
-          </Flex>
-          </div>
-        </GlassCard>
-      </Dialog.Content>
+            </>
+          )}
+        </Dialog.Content>
+      </Dialog.Portal>
     </Dialog.Root>
   );
 }

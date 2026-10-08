@@ -65,7 +65,7 @@ const LegacyAvatar = ({ emoji = "💕", size = "md", gradient = true, className 
       className={`${sizeMap[size]} ${className}`}
       style={
         gradient
-          ? { background: "var(--vp-primary-soft)" }
+          ? { background: "var(--ym-teal-tint)" }
           : { background: "var(--muted)" }
       }
     >

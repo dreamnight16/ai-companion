@@ -62,7 +62,7 @@ export default function QQConfigStep({
 
         {isWorking && (
           <div className="flex items-center gap-2 fade-in">
-            <div className="w-4 h-4 rounded-full border-2 border-muted border-t-primary animate-spin" />
+            <span className="ym-spinner" aria-hidden="true" />
             <span className="text-xs text-muted-foreground">{STATUS_LABELS[napCatStatus]}</span>
           </div>
         )}

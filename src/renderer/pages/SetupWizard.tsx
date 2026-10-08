@@ -1,5 +1,4 @@
-import { Flex, Text, Button, Progress } from "@radix-ui/themes";
-import { MessageCircle, AlertTriangle } from "lucide-react";
+import { AlertTriangle, MessageCircle } from "lucide-react";
 import { useSetupWizard } from "../hooks/useSetupWizard";
 import { usePlatform } from "../hooks/usePlatform";
 import WelcomeStep from "../components/wizard/WelcomeStep";
@@ -19,107 +18,144 @@ import AIProviderStep from "../components/wizard/AIProviderStep";
 import PlatformSetupStep from "../components/wizard/PlatformSetupStep";
 import SummaryStep from "../components/wizard/SummaryStep";
 
+/** 步骤顺序与标签 —— 与下面的组件数组一一对应，用于左侧的定位信息 */
 const STEPS = [
-  WelcomeStep, QuickStartStep, PartnerNameStep, PartnerDescriptionStep,
-  UserGenderStep, PartnerGenderStep, RelationshipTypeStep, RelationshipModeStep,
-  TimezoneStep, UserCityStep, NicknameStep,
-  SpeakingStyleStep, MemeStyleStep, AIProviderStep,
-  PlatformSetupStep, SummaryStep,
+  { Component: WelcomeStep, group: "开始", label: "关于梦间" },
+  { Component: QuickStartStep, group: "开始", label: "角色模板" },
+  { Component: PartnerNameStep, group: "角色", label: "名字" },
+  { Component: PartnerDescriptionStep, group: "角色", label: "角色卡" },
+  { Component: UserGenderStep, group: "关系", label: "你的性别" },
+  { Component: PartnerGenderStep, group: "关系", label: "TA 的性别" },
+  { Component: RelationshipTypeStep, group: "关系", label: "关系类型" },
+  { Component: RelationshipModeStep, group: "关系", label: "相处模式" },
+  { Component: TimezoneStep, group: "日常", label: "时区" },
+  { Component: UserCityStep, group: "日常", label: "城市" },
+  { Component: NicknameStep, group: "日常", label: "称呼" },
+  { Component: SpeakingStyleStep, group: "说话方式", label: "说话习惯" },
+  { Component: MemeStyleStep, group: "说话方式", label: "梗风格" },
+  { Component: AIProviderStep, group: "服务", label: "模型服务" },
+  { Component: PlatformSetupStep, group: "服务", label: "聊天平台" },
+  { Component: SummaryStep, group: "服务", label: "确认并创建" },
 ];
 
 export default function SetupWizard() {
   const platform = usePlatform();
   const wizard = useSetupWizard();
-  const { step, progress, back, canNext, next, transitioning, transitionTimedOut, error, saveProfile } = wizard;
-  const StepComponent = STEPS[step];
+  const { step, canNext, back, next, transitioning, transitionTimedOut, saveProfile } = wizard;
+  const { Component: StepComponent, group, label } = STEPS[step];
+  const total = STEPS.length;
+  const topInset = platform === "darwin" ? 56 : 28;
 
   if (transitioning) {
     return (
-      <Flex direction="column" align="center" justify="center" height="100vh" gap="4" className="bounce-in"
-        style={{ background: "transparent" }}>
-        <div className="glass-shine" style={{ maxWidth: 380, width: "100%", borderRadius: 16, padding: 32 }}>
-          <div className="text-center space-y-4">
-          <Flex width="64px" height="64px" align="center" justify="center" mx="auto"
-            style={{
-              borderRadius: "var(--radius-4)",
-              background: transitionTimedOut ? "var(--red-3)" : "var(--accent-3)",
-            }}>
+      <div className="ym-setup ym-setup--busy">
+        <div className="ym-setup__rail">
+          <span className="ym-kicker" style={{ opacity: 0.85 }}>梦间 / Yumema</span>
+          <p className="ym-setup__rail-title">
+            {transitionTimedOut ? "启动超时" : "正在准备聊天空间"}
+          </p>
+          <p className="ym-setup__rail-note">
             {transitionTimedOut
-              ? <AlertTriangle size={32} color="var(--red-9)" />
-              : <MessageCircle size={32} color="var(--accent-9)" />
-            }
-          </Flex>
-          <Flex direction="column" align="center" gap="2">
-            <Text size="4" weight="bold">
-              {transitionTimedOut ? "启动超时" : "正在准备聊天空间..."}
-            </Text>
-            <Text size="2" color="gray">
-              {transitionTimedOut ? "窗口切换可能未响应，请手动重试" : "一切准备就绪"}
-            </Text>
-          </Flex>
-          {transitionTimedOut && (
-            <Button size="2" onClick={saveProfile}>点击重试</Button>
-          )}
+              ? "窗口切换可能未响应，可以重试或重新打开应用。"
+              : "资料已经保存，正在打开聊天窗口。"}
+          </p>
+        </div>
+        <div className="ym-setup__body" role="status" aria-live="polite">
+          <div className="ym-setup__content">
+            {transitionTimedOut ? (
+              <>
+                <p className="ym-alert">
+                  <AlertTriangle size={16} aria-hidden="true" />
+                  窗口切换没有完成
+                </p>
+                <button type="button" className="ym-btn ym-btn--primary ym-btn--lg ym-focus" onClick={saveProfile}>
+                  重试打开聊天窗口
+                </button>
+              </>
+            ) : (
+              <p className="ym-setup__status">
+                <MessageCircle size={16} aria-hidden="true" />
+                一切准备就绪
+              </p>
+            )}
           </div>
         </div>
-      </Flex>
+      </div>
     );
   }
 
   return (
-    <Flex direction="column" height="100vh" style={{ background: "transparent" }}>
-      <header style={{
-        padding: "16px 24px", paddingTop: platform === "darwin" ? 56 : 16,
-        WebkitAppRegion: "drag",
-      }}>
-        <Flex direction="column" width="100%" gap="2">
-          <Progress value={progress} size="1" variant="soft" radius="none" />
-          <Flex justify="center" gap="2">
-            {STEPS.map((_, i) => (
-              <div
-                key={i}
-                style={{
-                  width: i === step ? 22 : 6,
-                  height: 6,
-                  borderRadius: 999,
-                  background: i === step ? "var(--accent-9)" : i < step ? "var(--accent-5)" : "var(--gray-5)",
-                  transition: "width 400ms cubic-bezier(0.34, 1.56, 0.64, 1), background-color 200ms ease",
-                }}
-              />
-            ))}
-          </Flex>
-        </Flex>
-      </header>
+    <div className="ym-setup">
+      {/* 左：品牌实色色块，用排版表达「走到第几步、这一步在做什么」 */}
+      <aside className="ym-setup__rail" style={{ paddingTop: topInset }}>
+        <span className="ym-kicker" style={{ opacity: 0.85 }}>梦间 / Yumema</span>
 
-      <Flex flexGrow="1" align="start" justify="center" style={{ overflowY: "auto", padding: "32px 24px 24px" }}>
-        <div className="glass-shine" style={{ width: "100%", maxWidth: 448, borderRadius: 16, padding: 32 }} key={step}>
-          <div className="fade-in">
+        <p className="ym-setup__step-group ym-kicker">{group}</p>
+
+        <p className="ym-setup__step-number">
+          <span className="ym-setup__step-current">{String(step + 1).padStart(2, "0")}</span>
+          <span className="ym-setup__step-total">/{String(total).padStart(2, "0")}</span>
+        </p>
+
+        <p className="ym-setup__step-label">{label}</p>
+
+        <ol className="ym-setup__scale" aria-label="设置进度">
+          {STEPS.map((s, i) => (
+            <li
+              key={s.label}
+              className="ym-setup__mark"
+              data-state={i === step ? "current" : i < step ? "done" : "todo"}
+              title={`${i + 1}. ${s.group} · ${s.label}`}
+            >
+              <span className="sr-only">
+                {i + 1}. {s.group} · {s.label}
+                {i === step ? "（当前）" : i < step ? "（已完成）" : "（未开始）"}
+              </span>
+            </li>
+          ))}
+        </ol>
+
+        <p className="ym-setup__rail-note">
+          16 步都按需填写，创建后仍可在设置里修改角色卡、模型与记忆。
+        </p>
+      </aside>
+
+      {/* 右：内容区，步骤内容直接落在 Canvas 上，不再套一层装饰容器 */}
+      <div className="ym-setup__body">
+        <div className="ym-setup__content">
+          <div className="fade-in" key={step}>
+            {/* 各步骤按需取用向导状态；与既有实现一致地透传整个 wizard 对象 */}
             <StepComponent {...(wizard as any)} />
           </div>
         </div>
-      </Flex>
 
-      <div className="glass-shine" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0, height: 56, padding: "0 24px", borderRadius: 16 }}>
-        <Flex align="center" justify="between" style={{ width: "100%" }}>
-        <div>
-          {step > 0 && (
-            <Button variant="ghost" size="2" onClick={back}>← 上一步</Button>
-          )}
+        <div className="ym-setup__actions">
+          <div className="ym-setup__actions-inner">
+            <div>
+              {step > 0 && (
+                <button type="button" className="ym-btn ym-btn--ghost ym-focus" onClick={back}>
+                  ← 上一步
+                </button>
+              )}
+            </div>
+            <span className="ym-kicker" aria-hidden="true">
+              {step + 1} / {total}
+            </span>
+            <div>
+              {step < total - 1 && (
+                <button
+                  type="button"
+                  className="ym-btn ym-btn--primary ym-focus"
+                  onClick={next}
+                  disabled={!canNext}
+                >
+                  下一步
+                </button>
+              )}
+            </div>
+          </div>
         </div>
-
-        <Text size="1" color="gray" style={{ fontFamily: "var(--default-font-family)" }}>
-          {step + 1}/{STEPS.length}
-        </Text>
-
-        <div>
-          {step < STEPS.length - 1 && (
-            <Button size="2" onClick={next} disabled={!canNext}>
-              下一步
-            </Button>
-          )}
-        </div>
-        </Flex>
       </div>
-    </Flex>
+    </div>
   );
 }

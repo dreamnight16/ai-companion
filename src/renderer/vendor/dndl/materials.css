@@ -1,0 +1,47 @@
+/* Optional DNDL materials; load tokens.css first. */
+.dn-acrylic {
+  background: var(--dn-surface);
+  color: var(--dn-text-primary);
+  border: 1px solid var(--dn-divider);
+}
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .dn-acrylic {
+    background: var(--dn-acrylic-background);
+    border-color: var(--dn-acrylic-border);
+    backdrop-filter: blur(var(--dn-acrylic-blur));
+    -webkit-backdrop-filter: blur(var(--dn-acrylic-blur));
+  }
+}
+.dn-elevation-0 { box-shadow: var(--dn-shadow-0); }
+.dn-elevation-1 { box-shadow: var(--dn-shadow-1); }
+.dn-elevation-2 { box-shadow: var(--dn-shadow-2); }
+.dn-elevation-3 { box-shadow: var(--dn-shadow-3); }
+.dn-elevation-4 { box-shadow: var(--dn-shadow-4); }
+
+/* Explicit fallback remains available even if the preference is unsupported. */
+[data-dn-transparency="off"] .dn-acrylic,
+.dn-acrylic[data-dn-transparency="off"] {
+  background: var(--dn-surface);
+  border-color: var(--dn-divider);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+@media (prefers-reduced-transparency: reduce) {
+  .dn-acrylic {
+    background: var(--dn-surface);
+    border-color: var(--dn-divider);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+@media (forced-colors: active) {
+  .dn-acrylic {
+    background: Canvas;
+    color: CanvasText;
+    border-color: CanvasText;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .dn-elevation-0, .dn-elevation-1, .dn-elevation-2,
+  .dn-elevation-3, .dn-elevation-4 { box-shadow: none; }
+}

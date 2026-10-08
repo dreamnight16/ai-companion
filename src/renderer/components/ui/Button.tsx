@@ -1,60 +1,78 @@
-import { Button as RadixButton } from "@radix-ui/themes";
-import type { ButtonProps as RadixButtonProps } from "@radix-ui/themes";
-import type { ReactNode } from "react";
+import type { ButtonHTMLAttributes, ReactNode } from "react";
 
-type LegacyVariant = "default" | "primary" | "secondary" | "outline" | "ghost" | "link" | "destructive" | "danger";
-type LegacySize = "default" | "sm" | "lg" | "icon";
+/**
+ * 按钮 —— DNDL 直角几何 + 品牌实色色块。
+ *
+ * 主操作是实色 Teal 色块，文字使用 --dn-text-on-color；
+ * 次要操作使用 Surface + 可辨识边界；危险操作使用 Crimson 实色。
+ * 不再经由 Radix Themes 取色，避免品牌色与组件库色板不一致。
+ */
+type Variant =
+  | "default" | "primary" | "solid"
+  | "secondary" | "soft"
+  | "outline" | "ghost" | "link"
+  | "destructive" | "danger";
 
-function mapVariant(v?: LegacyVariant | string): RadixButtonProps["variant"] {
-  if (!v || v === "default" || v === "primary" || v === "secondary") return "solid";
-  if (v === "outline") return "outline";
-  if (v === "ghost" || v === "link") return "ghost";
-  if (v === "destructive" || v === "danger") return "soft";
-  return "solid";
-}
+type Size = "default" | "sm" | "lg" | "icon";
 
-function mapColor(v?: LegacyVariant | string): RadixButtonProps["color"] {
-  if (v === "destructive" || v === "danger") return "red";
-  return undefined; // default accent color
-}
+const VARIANT_CLASS: Record<string, string> = {
+  default: "ym-btn ym-btn--primary",
+  primary: "ym-btn ym-btn--primary",
+  solid: "ym-btn ym-btn--primary",
+  secondary: "ym-btn ym-btn--secondary",
+  soft: "ym-btn ym-btn--soft",
+  outline: "ym-btn ym-btn--outline",
+  ghost: "ym-btn ym-btn--ghost",
+  link: "ym-btn ym-btn--link",
+  destructive: "ym-btn ym-btn--danger",
+  danger: "ym-btn ym-btn--danger",
+};
 
-function mapSize(s?: LegacySize | string): RadixButtonProps["size"] {
-  if (s === "sm") return "2";
-  if (s === "lg") return "4";
-  if (s === "icon") return "2";
-  return "3";
-}
+const SIZE_CLASS: Record<string, string> = {
+  sm: "ym-btn--sm",
+  default: "ym-btn--md",
+  lg: "ym-btn--lg",
+  icon: "ym-btn--icon",
+};
 
-interface ButtonProps extends Omit<RadixButtonProps, "variant" | "size" | "color"> {
-  variant?: LegacyVariant | string;
-  size?: LegacySize | string;
+interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "color"> {
+  variant?: Variant | string;
+  size?: Size | string;
   loading?: boolean;
   iconOnly?: boolean;
+  /** Radix 时代的遗留属性，本组件忽略（颜色由语义 variant 决定） */
+  color?: string;
   children?: ReactNode;
 }
 
-const Button = ({ variant, size, loading, disabled, iconOnly, children, ...props }: ButtonProps) => {
-  if (iconOnly) {
-    return (
-      <button
-        className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-muted transition-colors"
-        disabled={disabled || loading}
-        {...(props as Record<string, unknown>)}
-      >
-        {loading ? "..." : children}
-      </button>
-    );
-  }
+const Button = ({
+  variant = "primary",
+  size = "default",
+  loading,
+  disabled,
+  iconOnly,
+  color: _color,
+  className = "",
+  children,
+  ...props
+}: ButtonProps) => {
+  const classes = [
+    VARIANT_CLASS[variant] ?? VARIANT_CLASS.primary,
+    SIZE_CLASS[iconOnly ? "icon" : size] ?? SIZE_CLASS.default,
+    "ym-focus",
+    className,
+  ].filter(Boolean).join(" ");
+
   return (
-    <RadixButton
-      variant={mapVariant(variant)}
-      color={mapColor(variant)}
-      size={mapSize(size)}
+    <button
+      type="button"
+      className={classes}
       disabled={disabled || loading}
+      aria-busy={loading || undefined}
       {...props}
     >
-      {loading ? "..." : children}
-    </RadixButton>
+      {loading ? "处理中…" : children}
+    </button>
   );
 };
 Button.displayName = "Button";

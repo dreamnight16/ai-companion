@@ -1,10 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import {
-  Dialog, Tabs, Select, Slider, TextField, Button,
-  Flex, Text,
-} from "@radix-ui/themes";
-import { Heart } from "lucide-react";
-import { GlassCard, CardHeader } from "../ui/GlassCard";
+import { Select, Slider } from "@radix-ui/themes";
+import * as Tabs from "@radix-ui/react-tabs";
+import * as Dialog from "@radix-ui/react-dialog";
+import { Heart, X } from "lucide-react";
+import { Input, Field } from "../ui/Input";
 import ToggleTag from "../shared/ToggleTag";
 import { getModels, isCustomModelProvider } from "../../lib/models";
 
@@ -13,6 +12,16 @@ const TEMPERAMENT_TAGS = ["温柔", "活泼", "傲娇", "高冷", "粘人", "腹
 const HOBBY_TAGS = ["游戏", "动漫", "音乐", "电影", "阅读", "运动", "美食", "旅行", "摄影", "画画", "写作", "编程"];
 const DAILY_TAGS = ["上班族朝九晚五", "学生党上课泡图书馆", "自由职业宅家", "夜猫子晚上活动", "早起型早上活跃"];
 const QUIRK_TAGS = ["路痴", "怕黑", "吃货", "起床困难户", "丢三落四", "爱干净", "拖延症", "脸盲"];
+
+const TABS = [
+  { value: "ai", label: "模型服务", desc: "选择生成回复的模型与内容过滤强度" },
+  { value: "memory", label: "记忆", desc: "TA 记住的关于你的事，可以逐条增删改" },
+  { value: "character", label: "角色卡", desc: "资料、性格、爱好与说话方式" },
+  { value: "data", label: "数据", desc: "导入导出与重置" },
+  { value: "about", label: "关于", desc: "版本与项目信息" },
+];
+
+const CONFIDENCE_LABEL: Record<string, string> = { high: "可信度高", medium: "可信度中", low: "可信度低" };
 
 export default function SettingsDialog({ onClose }: { onClose: () => void }) {
   const [resetStep, setResetStep] = useState(0);
@@ -30,6 +39,7 @@ export default function SettingsDialog({ onClose }: { onClose: () => void }) {
   const [aiError, setAiError] = useState("");
   const [hasApiKey, setHasApiKey] = useState(false);
   const [contentFilter, setContentFilter] = useState<"strict" | "moderate" | "off">("strict");
+  const [tab, setTab] = useState("ai");
 
   // 角色卡编辑状态
   const [profileAge, setProfileAge] = useState(0);
@@ -211,29 +221,63 @@ export default function SettingsDialog({ onClose }: { onClose: () => void }) {
     }
   };
 
-  return (
-    <Dialog.Root open onOpenChange={onClose}>
-      <Dialog.Content maxWidth="448px" style={{ padding: 0, background: "transparent", WebkitAppRegion: "no-drag" }}>
-        <GlassCard padding="p-0">
-          <CardHeader title="设置" onClose={onClose} />
-          <Flex direction="column" maxHeight="70vh">
+  const addMemory = async () => {
+    try {
+      const result = await window.api.updateMemoryFact({ topic: newTopic.trim(), content: newContent.trim() });
+      const r = result as { success?: boolean; data?: typeof memoryFacts; error?: string };
+      if (r.success && r.data) {
+        setMemoryFacts(r.data);
+        setNewTopic("");
+        setNewContent("");
+      } else {
+        alert(r.error || "添加失败");
+      }
+    } catch (err) { alert("添加失败: " + String(err)); }
+  };
 
-          <Tabs.Root defaultValue="ai" style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
-            <Tabs.List mx="5" className="glass-shine rounded-xl p-2">
-              <Tabs.Trigger value="ai" className="px-4 py-2">模型服务</Tabs.Trigger>
-              <Tabs.Trigger value="memory" className="px-4 py-2">记忆</Tabs.Trigger>
-              <Tabs.Trigger value="character" className="px-4 py-2">角色卡</Tabs.Trigger>
-              <Tabs.Trigger value="data" className="px-4 py-2">数据</Tabs.Trigger>
-              <Tabs.Trigger value="about" className="px-4 py-2">关于</Tabs.Trigger>
+  const removeMemory = async (topic: string) => {
+    try {
+      const result = await window.api.deleteMemoryFact(topic);
+      const r = result as { success?: boolean; data?: typeof memoryFacts; error?: string };
+      if (r.success && r.data) setMemoryFacts(r.data);
+      else alert(r.error || "删除失败");
+    } catch (err) { alert("删除失败: " + String(err)); }
+  };
+
+  const activeTab = TABS.find((t) => t.value === tab) ?? TABS[0];
+
+  return (
+    <Dialog.Root open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="ym-scrim" />
+        <Dialog.Content className="ym-dialog ym-dialog--settings dn-acrylic dn-elevation-3" style={{ WebkitAppRegion: "no-drag" }}>
+          <header className="ym-dialog__head">
+            <div>
+              <Dialog.Title className="ym-dialog__title">设置</Dialog.Title>
+              <Dialog.Description className="ym-dialog__desc">{activeTab.desc}</Dialog.Description>
+            </div>
+            <Dialog.Close asChild>
+              <button type="button" className="ym-icon-btn ym-focus" aria-label="关闭设置">
+                <X size={16} aria-hidden="true" />
+              </button>
+            </Dialog.Close>
+          </header>
+
+          <Tabs.Root value={tab} onValueChange={setTab} orientation="vertical" className="ym-settings">
+            <Tabs.List className="ym-settings__nav" aria-label="设置分类">
+              {TABS.map((t) => (
+                <Tabs.Trigger key={t.value} value={t.value} className="ym-settings__tab ym-focus">
+                  {t.label}
+                </Tabs.Trigger>
+              ))}
             </Tabs.List>
 
-            <Flex direction="column" px="6" py="5" gap="4" style={{ maxHeight: "50vh", overflowY: "auto" }}>
-              <Tabs.Content value="ai">
-                <Flex direction="column" gap="4">
-                  <Flex direction="column" gap="2">
-                    <Text size="1" color="gray">服务商</Text>
+            <div className="ym-settings__panel">
+              <Tabs.Content value="ai" className="ym-settings__content">
+                <div className="ym-form">
+                  <Field label="服务商" htmlFor="ym-ai-provider">
                     <Select.Root value={aiProvider} onValueChange={(v) => { setAiProvider(v); setAiModel(""); }}>
-                      <Select.Trigger />
+                      <Select.Trigger id="ym-ai-provider" />
                       <Select.Content className="vp-select-content">
                         <Select.Item value="anthropic">Claude (Anthropic)</Select.Item>
                         <Select.Item value="openai">OpenAI (GPT 系列)</Select.Item>
@@ -241,227 +285,197 @@ export default function SettingsDialog({ onClose }: { onClose: () => void }) {
                         <Select.Item value="ollama">Ollama (本地)</Select.Item>
                       </Select.Content>
                     </Select.Root>
-                  </Flex>
+                  </Field>
 
                   {aiProvider !== "openai-compatible" && aiProvider !== "ollama" && getModels(aiProvider).length > 0 && (
-                    <Flex direction="column" gap="2">
-                      <Text size="1" color="gray">模型</Text>
+                    <Field label="模型" htmlFor="ym-ai-model">
                       <Select.Root value={aiModel} onValueChange={setAiModel}>
-                        <Select.Trigger placeholder="选择模型..." />
+                        <Select.Trigger id="ym-ai-model" placeholder="选择模型..." />
                         <Select.Content className="vp-select-content">
                           {getModels(aiProvider).map((m) => (
                             <Select.Item key={m} value={m}>{m}</Select.Item>
                           ))}
                         </Select.Content>
                       </Select.Root>
-                    </Flex>
+                    </Field>
                   )}
 
                   {isCustomModelProvider(aiProvider) && (
-                    <Flex direction="column" gap="2">
-                      <Text size="1" color="gray">模型名称</Text>
-                      <TextField.Root
+                    <Field label="模型名称" htmlFor="ym-ai-model-name">
+                      <Input
+                        id="ym-ai-model-name"
                         value={aiModel}
                         onChange={(e) => setAiModel(e.target.value)}
                         placeholder={aiProvider === "ollama" ? "llama3 / qwen2.5" : "deepseek-chat / gpt-4o-mini"}
                       />
-                    </Flex>
+                    </Field>
                   )}
 
-                  <Flex direction="column" gap="2">
-                    <Flex align="center" gap="2">
-                      <Text size="1" color="gray">
-                        API Key{aiProvider === "ollama" ? " (本地可留空)" : ""}
-                      </Text>
+                  <Field
+                    label={aiProvider === "ollama" ? "API Key（本地可留空）" : "API Key"}
+                    htmlFor="ym-ai-key"
+                    hint={hasApiKey && aiProvider !== "ollama" ? "已保存密钥，留空则继续使用现有密钥" : undefined}
+                  >
+                    <div className="ym-form__row">
+                      <Input
+                        id="ym-ai-key"
+                        type="password"
+                        value={aiApiKey}
+                        onChange={(e) => setAiApiKey(e.target.value)}
+                        placeholder={aiProvider === "ollama" ? "ollama 本地无需密钥" : hasApiKey ? "输入新密钥可更换..." : "sk-..."}
+                      />
                       {hasApiKey && aiProvider !== "ollama" && (
-                        <span className="text-[10px] px-2 py-1 rounded-full bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
-                          已配置
-                        </span>
+                        <span className="ym-badge-emerald ym-form__flag">已配置密钥</span>
                       )}
-                    </Flex>
-                    <TextField.Root
-                      type="password"
-                      value={aiApiKey}
-                      onChange={(e) => setAiApiKey(e.target.value)}
-                      placeholder={aiProvider === "ollama" ? "ollama 本地无需密钥" : hasApiKey ? "输入新密钥可更换..." : "sk-..."}
-                    />
-                  </Flex>
+                    </div>
+                  </Field>
 
                   {isCustomModelProvider(aiProvider) && (
-                    <Flex direction="column" gap="2">
-                      <Text size="1" color="gray">API 地址</Text>
-                      <TextField.Root
+                    <Field label="API 地址" htmlFor="ym-ai-base">
+                      <Input
+                        id="ym-ai-base"
                         value={aiBaseUrl}
                         onChange={(e) => setAiBaseUrl(e.target.value)}
                         placeholder={aiProvider === "ollama" ? "http://localhost:11434/v1" : "https://api.deepseek.com"}
                       />
-                    </Flex>
+                    </Field>
                   )}
 
-                  <Flex direction="column" gap="2">
-                    <Text size="1" color="gray">最大输出 Token: {aiMaxTokens[0]}</Text>
-                    <Slider value={aiMaxTokens} onValueChange={setAiMaxTokens} min={256} max={8192} step={256} />
-                    <Flex justify="between">
-                      <Text size="1" color="gray">256</Text>
-                      <Text size="1" color="gray">8192</Text>
-                    </Flex>
-                  </Flex>
+                  <Field label={`最大输出 Token — ${aiMaxTokens[0]}`} htmlFor="ym-ai-tokens">
+                    <Slider id="ym-ai-tokens" value={aiMaxTokens} onValueChange={setAiMaxTokens} min={256} max={8192} step={256} />
+                    <div className="ym-form__scale">
+                      <span className="ym-kicker">256</span>
+                      <span className="ym-kicker">8192</span>
+                    </div>
+                  </Field>
 
-                  <Flex direction="column" gap="2">
-                    <Text size="1" color="gray">温度: {aiTemperature[0].toFixed(2)}</Text>
-                    <Slider value={aiTemperature} onValueChange={setAiTemperature} min={0} max={2} step={0.05} />
-                    <Flex justify="between">
-                      <Text size="1" color="gray">0 (精确)</Text>
-                      <Text size="1" color="gray">2 (创意)</Text>
-                    </Flex>
-                  </Flex>
+                  <Field label={`温度 — ${aiTemperature[0].toFixed(2)}`} htmlFor="ym-ai-temp">
+                    <Slider id="ym-ai-temp" value={aiTemperature} onValueChange={setAiTemperature} min={0} max={2} step={0.05} />
+                    <div className="ym-form__scale">
+                      <span className="ym-kicker">0 更精确</span>
+                      <span className="ym-kicker">2 更发散</span>
+                    </div>
+                  </Field>
 
-                  <Flex direction="column" gap="2">
-                    <Text size="1" color="gray">内容过滤</Text>
+                  <Field label="内容过滤" htmlFor="ym-ai-filter">
                     <Select.Root value={contentFilter} onValueChange={(v) => setContentFilter(v as typeof contentFilter)}>
-                      <Select.Trigger />
+                      <Select.Trigger id="ym-ai-filter" />
                       <Select.Content className="vp-select-content">
                         <Select.Item value="strict">严格 — 拦截所有不安全内容</Select.Item>
                         <Select.Item value="moderate">适中 — 仅拦截违法/色情内容</Select.Item>
                         <Select.Item value="off">关闭 — 不做内容过滤</Select.Item>
                       </Select.Content>
                     </Select.Root>
-                  </Flex>
+                  </Field>
 
-                  <Button onClick={handleAiSave} disabled={aiSaving || (aiProvider !== "ollama" && !aiApiKey.trim() && !hasApiKey)}>
-                    {aiSaved ? "已保存" : "保存模型配置"}
-                  </Button>
                   {aiError && (
-                    <Text size="1" style={{ color: "var(--red-9)" }}>{aiError}</Text>
+                    <p className="ym-alert ym-alert--danger" role="alert">{aiError}</p>
                   )}
-                </Flex>
+
+                  <button
+                    type="button"
+                    className="ym-btn ym-btn--primary ym-focus"
+                    onClick={handleAiSave}
+                    disabled={aiSaving || (aiProvider !== "ollama" && !aiApiKey.trim() && !hasApiKey)}
+                  >
+                    {aiSaved ? "已保存" : aiSaving ? "保存中..." : "保存模型配置"}
+                  </button>
+                </div>
               </Tabs.Content>
 
-              <Tabs.Content value="memory">
-                <Flex direction="column" gap="4">
-                  <div>
-                    <h3 className="text-base font-semibold">伴侣的记忆</h3>
-                    <Text size="2" color="gray">TA 记住的关于你的事 — 可以查看、编辑或删除</Text>
-                  </div>
+              <Tabs.Content value="memory" className="ym-settings__content">
+                <div className="ym-form">
+                  <h3 className="ym-section-title">伴侣的记忆</h3>
+                  <p className="ym-note">TA 记住的关于你的事，可以查看、修改或删除。</p>
 
                   {memoryFacts.map((fact) => (
-                    <GlassCard key={fact.topic} variant="solid" padding="p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-sm font-medium">{fact.topic}</span>
-                            <span className="text-[10px] px-2 py-1 rounded-full" style={{
-                              background: fact.confidence === "high" ? "var(--success)" : fact.confidence === "medium" ? "var(--warning)" : "var(--muted)",
-                              color: fact.confidence === "high" ? "white" : "var(--foreground)",
-                            }}>
-                              {fact.confidence === "high" ? "高" : fact.confidence === "medium" ? "中" : "低"}
-                            </span>
-                            <span className="text-[10px] text-muted-foreground">提及 {fact.mentions} 次</span>
-                          </div>
-                          <p className="text-sm text-muted-foreground">{fact.content}</p>
-                        </div>
+                    <article key={fact.topic} className="ym-memory">
+                      <div className="ym-memory__head">
+                        <span className="ym-memory__topic">{fact.topic}</span>
+                        <span
+                          className={
+                            fact.confidence === "high" ? "ym-badge-emerald ym-memory__conf"
+                              : fact.confidence === "medium" ? "ym-badge-amber ym-memory__conf"
+                                : "ym-memory__conf ym-memory__conf--low"
+                          }
+                        >
+                          {CONFIDENCE_LABEL[fact.confidence] || "可信度未知"}
+                        </span>
+                        <span className="ym-kicker">提及 {fact.mentions} 次</span>
                         <button
-                          className="text-xs text-muted-foreground hover:text-destructive shrink-0"
-                          onClick={async () => {
-                            try {
-                              const result = await window.api.deleteMemoryFact(fact.topic);
-                              const r = result as { success?: boolean; data?: typeof memoryFacts; error?: string };
-                              if (r.success && r.data) setMemoryFacts(r.data);
-                              else alert(r.error || "删除失败");
-                            } catch (err) { alert("删除失败: " + String(err)); }
-                          }}
+                          type="button"
+                          className="ym-btn ym-btn--link ym-focus ym-memory__delete"
+                          onClick={() => removeMemory(fact.topic)}
                         >
                           删除
                         </button>
                       </div>
-                    </GlassCard>
+                      <p className="ym-memory__body">{fact.content}</p>
+                    </article>
                   ))}
 
                   {memoryFacts.length === 0 && (
-                    <p className="text-sm text-muted-foreground text-center py-4">还没有记忆 — 多和 TA 聊聊天吧</p>
+                    <p className="ym-empty">还没有记忆 — 多和 TA 聊聊天，重要的内容会被记住</p>
                   )}
 
-                  <div style={{
-                    borderRadius: 12, border: "1px solid var(--border)",
-                    background: "var(--card)", padding: 28,
-                    display: "flex", flexDirection: "column", gap: 20,
-                  }}>
-                    <Text size="2" weight="medium">添加记忆</Text>
-                    <Flex direction="column" gap="4">
-                      <input
-                        type="text"
-                        className="rounded-xl text-sm bg-background border border-input text-foreground outline-none"
-                        style={{ width: "100%", padding: "14px 20px" }}
-                        placeholder="话题（如：喜欢的食物）"
+                  <section className="ym-panel ym-form" style={{ padding: "var(--ym-space-5)" }}>
+                    <h4 className="ym-section-title">添加记忆</h4>
+                    <Field label="话题" htmlFor="ym-memory-topic">
+                      <Input
+                        id="ym-memory-topic"
                         value={newTopic}
                         onChange={(e) => setNewTopic(e.target.value)}
+                        placeholder="如：喜欢的食物"
                       />
-                      <input
-                        type="text"
-                        className="rounded-xl text-sm bg-background border border-input text-foreground outline-none"
-                        style={{ width: "100%", padding: "14px 20px" }}
-                        placeholder="内容（如：最喜欢吃火锅，尤其是麻辣锅）"
+                    </Field>
+                    <Field label="内容" htmlFor="ym-memory-content">
+                      <Input
+                        id="ym-memory-content"
                         value={newContent}
                         onChange={(e) => setNewContent(e.target.value)}
+                        placeholder="如：最喜欢吃火锅，尤其是麻辣锅"
                       />
-                    </Flex>
-                    <Button
+                    </Field>
+                    <button
+                      type="button"
+                      className="ym-btn ym-btn--primary ym-focus"
                       disabled={!newTopic.trim() || !newContent.trim()}
-                      onClick={async () => {
-                        try {
-                          const result = await window.api.updateMemoryFact({ topic: newTopic.trim(), content: newContent.trim() });
-                          const r = result as { success?: boolean; data?: typeof memoryFacts; error?: string };
-                          if (r.success && r.data) {
-                            setMemoryFacts(r.data);
-                            setNewTopic("");
-                            setNewContent("");
-                          } else {
-                            alert(r.error || "添加失败");
-                          }
-                        } catch (err) { alert("添加失败: " + String(err)); }
-                      }}
+                      onClick={addMemory}
                     >
                       添加
-                    </Button>
-                  </div>
-                </Flex>
+                    </button>
+                  </section>
+                </div>
               </Tabs.Content>
 
-              <Tabs.Content value="character">
-                <Flex direction="column" gap="4">
-                  <Flex direction="column" gap="3">
-                    <Flex gap="2">
-                      <Flex direction="column" gap="1" style={{ flex: 1 }}>
-                        <Text size="1" color="gray">年龄</Text>
-                        <TextField.Root
-                          type="number" value={profileAge ? String(profileAge) : ""}
-                          onChange={(e) => setProfileAge(Number(e.target.value) || 0)}
-                        />
-                      </Flex>
-                      <Flex direction="column" gap="1" style={{ flex: 1 }}>
-                        <Text size="1" color="gray">城市</Text>
-                        <TextField.Root value={profileCity} onChange={(e) => setProfileCity(e.target.value)} />
-                      </Flex>
-                    </Flex>
-                    <Flex gap="2">
-                      <Flex direction="column" gap="1" style={{ flex: 1 }}>
-                        <Text size="1" color="gray">职业</Text>
-                        <TextField.Root value={profileOccupation} onChange={(e) => setProfileOccupation(e.target.value)} />
-                      </Flex>
-                      <Flex direction="column" gap="1" style={{ flex: 1 }}>
-                        <Text size="1" color="gray">学历</Text>
-                        <TextField.Root value={profileEducation} onChange={(e) => setProfileEducation(e.target.value)} />
-                      </Flex>
-                    </Flex>
-                    <Flex direction="column" gap="1">
-                      <Text size="1" color="gray">专业</Text>
-                      <TextField.Root value={profileMajor} onChange={(e) => setProfileMajor(e.target.value)} />
-                    </Flex>
-                  </Flex>
+              <Tabs.Content value="character" className="ym-settings__content">
+                <div className="ym-form">
+                  <div className="ym-form__grid">
+                    <Field label="年龄" htmlFor="ym-p-age">
+                      <Input
+                        id="ym-p-age"
+                        type="number"
+                        value={profileAge ? String(profileAge) : ""}
+                        onChange={(e) => setProfileAge(Number(e.target.value) || 0)}
+                      />
+                    </Field>
+                    <Field label="城市" htmlFor="ym-p-city">
+                      <Input id="ym-p-city" value={profileCity} onChange={(e) => setProfileCity(e.target.value)} />
+                    </Field>
+                    <Field label="职业" htmlFor="ym-p-occupation">
+                      <Input id="ym-p-occupation" value={profileOccupation} onChange={(e) => setProfileOccupation(e.target.value)} />
+                    </Field>
+                    <Field label="学历" htmlFor="ym-p-education">
+                      <Input id="ym-p-education" value={profileEducation} onChange={(e) => setProfileEducation(e.target.value)} />
+                    </Field>
+                  </div>
 
-                  <Flex direction="column" gap="2">
-                    <Text size="1" color="gray">性格标签</Text>
-                    <div className="flex flex-wrap gap-3">
+                  <Field label="专业" htmlFor="ym-p-major">
+                    <Input id="ym-p-major" value={profileMajor} onChange={(e) => setProfileMajor(e.target.value)} />
+                  </Field>
+
+                  <Field label="性格标签" hint="可以多选，也可以直接输入自定义描述">
+                    <div className="ym-form__tags">
                       {TEMPERAMENT_TAGS.map((t) => (
                         <ToggleTag key={t} active={profileTemperament.includes(t)} onClick={() => toggleTag(
                           profileTemperament ? profileTemperament.split("、") : [],
@@ -470,228 +484,227 @@ export default function SettingsDialog({ onClose }: { onClose: () => void }) {
                         )}>{t}</ToggleTag>
                       ))}
                     </div>
-                    <TextField.Root
+                    <Input
+                      aria-label="自定义性格"
                       value={profileTemperament}
                       onChange={(e) => setProfileTemperament(e.target.value)}
                       placeholder="或自定义输入性格..."
                     />
-                  </Flex>
+                  </Field>
 
-                  <Flex direction="column" gap="2">
-                    <Text size="1" color="gray">爱好</Text>
-                    <div className="flex flex-wrap gap-3">
+                  <Field label="爱好" hint="自定义内容可用「、」分隔；回车添加">
+                    <div className="ym-form__tags">
                       {HOBBY_TAGS.map((h) => (
                         <ToggleTag key={h} active={profileHobbies.includes(h)} onClick={() => toggleTag(profileHobbies, setProfileHobbies, h)}>{h}</ToggleTag>
                       ))}
                     </div>
-                    <Flex direction="column" gap="1">
-                      {profileHobbies.filter((h) => !HOBBY_TAGS.includes(h)).length > 0 && (
-                        <div className="flex flex-wrap gap-3">
-                          {profileHobbies.filter((h) => !HOBBY_TAGS.includes(h)).map((h) => (
-                            <span key={h} className="rounded-lg text-sm font-medium"
-                              style={{ padding: "10px 18px", background: "var(--primary)", color: "white" }}>
-                              {h}
-                              <button onClick={() => setProfileHobbies(profileHobbies.filter((i) => i !== h))}
-                                style={{ marginLeft: 4, opacity: 0.7 }}>×</button>
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                      <TextField.Root
-                        placeholder="输入自定义爱好后回车添加..."
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            const val = (e.target as HTMLInputElement).value.trim();
-                            if (val && !profileHobbies.includes(val)) {
-                              setProfileHobbies([...profileHobbies, val]);
-                              (e.target as HTMLInputElement).value = "";
-                            }
+                    <div className="ym-form__tags">
+                      {profileHobbies.filter((h) => !HOBBY_TAGS.includes(h)).map((h) => (
+                        <span key={h} className="ym-custom-tag">
+                          {h}
+                          <button
+                            type="button"
+                            className="ym-focus"
+                            aria-label={`移除爱好 ${h}`}
+                            onClick={() => setProfileHobbies(profileHobbies.filter((i) => i !== h))}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                    <Input
+                      aria-label="添加自定义爱好"
+                      placeholder="输入自定义爱好后回车添加..."
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          const val = (e.target as HTMLInputElement).value.trim();
+                          if (val && !profileHobbies.includes(val)) {
+                            setProfileHobbies([...profileHobbies, val]);
+                            (e.target as HTMLInputElement).value = "";
                           }
-                        }}
-                      />
-                    </Flex>
-                  </Flex>
+                        }
+                      }}
+                    />
+                  </Field>
 
-                  <Flex direction="column" gap="2">
-                    <Text size="1" color="gray">日常节奏</Text>
-                    <div className="flex flex-wrap gap-3">
+                  <Field label="日常节奏">
+                    <div className="ym-form__tags">
                       {DAILY_TAGS.map((d) => (
                         <ToggleTag key={d} active={profileDailyLife === d} onClick={() => setProfileDailyLife(profileDailyLife === d ? "" : d)}>{d}</ToggleTag>
                       ))}
                     </div>
-                    <TextField.Root
+                    <Input
+                      aria-label="自定义日常节奏"
                       value={profileDailyLife}
                       onChange={(e) => setProfileDailyLife(e.target.value)}
                       placeholder="或自定义输入..."
                     />
-                  </Flex>
+                  </Field>
 
-                  <Flex direction="column" gap="2">
-                    <Text size="1" color="gray">小特点</Text>
-                    <div className="flex flex-wrap gap-3">
+                  <Field label="小特点" hint="自定义内容可用「、」分隔；回车添加">
+                    <div className="ym-form__tags">
                       {QUIRK_TAGS.map((q) => (
-                        <ToggleTag key={q} active={profileQuirks.includes(q)} onClick={() => toggleTag(profileQuirks, setProfileQuirks, q)}>{q}</ToggleTag>
+                        <ToggleTag key={q} active={profileQuirks.includes(q)} onClick={() => toggleTag(profileQuirks, setProfileQuirks, q)} variant="amber">{q}</ToggleTag>
                       ))}
                     </div>
-                    <Flex direction="column" gap="1">
-                      {profileQuirks.filter((q) => !QUIRK_TAGS.includes(q)).length > 0 && (
-                        <div className="flex flex-wrap gap-3">
-                          {profileQuirks.filter((q) => !QUIRK_TAGS.includes(q)).map((q) => (
-                            <span key={q} className="rounded-lg text-sm font-medium"
-                              style={{ padding: "10px 18px", background: "var(--primary)", color: "white" }}>
-                              {q}
-                              <button onClick={() => setProfileQuirks(profileQuirks.filter((i) => i !== q))}
-                                style={{ marginLeft: 4, opacity: 0.7 }}>×</button>
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                      <TextField.Root
-                        placeholder="输入自定义特点后回车添加..."
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            const val = (e.target as HTMLInputElement).value.trim();
-                            if (val && !profileQuirks.includes(val)) {
-                              setProfileQuirks([...profileQuirks, val]);
-                              (e.target as HTMLInputElement).value = "";
-                            }
+                    <div className="ym-form__tags">
+                      {profileQuirks.filter((q) => !QUIRK_TAGS.includes(q)).map((q) => (
+                        <span key={q} className="ym-custom-tag ym-custom-tag--amber">
+                          {q}
+                          <button
+                            type="button"
+                            className="ym-focus"
+                            aria-label={`移除小特点 ${q}`}
+                            onClick={() => setProfileQuirks(profileQuirks.filter((i) => i !== q))}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                    <Input
+                      aria-label="添加自定义小特点"
+                      placeholder="输入自定义特点后回车添加..."
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          const val = (e.target as HTMLInputElement).value.trim();
+                          if (val && !profileQuirks.includes(val)) {
+                            setProfileQuirks([...profileQuirks, val]);
+                            (e.target as HTMLInputElement).value = "";
                           }
-                        }}
-                      />
-                    </Flex>
-                  </Flex>
+                        }
+                      }}
+                    />
+                  </Field>
 
-                  <Flex direction="column" gap="1">
-                    <Text size="1" color="gray">说话风格</Text>
-                    <TextField.Root value={profileSpeakingStyle} onChange={(e) => setProfileSpeakingStyle(e.target.value)} />
-                  </Flex>
+                  <Field label="说话风格" htmlFor="ym-p-speaking">
+                    <Input id="ym-p-speaking" value={profileSpeakingStyle} onChange={(e) => setProfileSpeakingStyle(e.target.value)} />
+                  </Field>
 
-                  <Flex direction="column" gap="1">
-                    <Text size="1" color="gray">梗风格</Text>
-                    <TextField.Root value={profileMemeStyle} onChange={(e) => setProfileMemeStyle(e.target.value)}
-                      placeholder="如：贴吧老哥、微博吃瓜、小红书体..." />
-                  </Flex>
+                  <Field label="梗风格" htmlFor="ym-p-meme">
+                    <Input
+                      id="ym-p-meme"
+                      value={profileMemeStyle}
+                      onChange={(e) => setProfileMemeStyle(e.target.value)}
+                      placeholder="如：贴吧老哥、微博吃瓜、小红书体..."
+                    />
+                  </Field>
 
-                  {profileError && (
-                    <Text size="1" style={{ color: "var(--red-9)" }}>{profileError}</Text>
-                  )}
+                  {profileError && <p className="ym-alert ym-alert--danger" role="alert">{profileError}</p>}
 
-                  <Button onClick={handleProfileSave} disabled={profileSaving}>
-                    {profileSaved ? "已保存" : "保存角色卡"}
-                  </Button>
-                </Flex>
+                  <button
+                    type="button"
+                    className="ym-btn ym-btn--primary ym-focus"
+                    onClick={handleProfileSave}
+                    disabled={profileSaving}
+                  >
+                    {profileSaved ? "已保存" : profileSaving ? "保存中..." : "保存角色卡"}
+                  </button>
+                </div>
               </Tabs.Content>
 
-              <Tabs.Content value="data">
-                <Flex direction="column" gap="4">
-                  <Text size="2" weight="medium">数据管理</Text>
-
-                  <Flex direction="column" gap="2">
-                    <Button variant="soft" size="2" onClick={async () => {
+              <Tabs.Content value="data" className="ym-settings__content">
+                <div className="ym-form">
+                  <h3 className="ym-section-title">角色卡</h3>
+                  <div className="ym-form__row">
+                    <button type="button" className="ym-btn ym-btn--outline ym-focus" onClick={async () => {
                       const r = await window.api.exportProfile() as { success: boolean; error?: string };
                       if (!r.success) alert(r.error);
-                    }}>导出角色卡</Button>
-                    <Button variant="soft" size="2" onClick={async () => {
+                    }}>导出角色卡</button>
+                    <button type="button" className="ym-btn ym-btn--outline ym-focus" onClick={async () => {
                       const r = await window.api.importProfile() as { success: boolean; error?: string };
                       if (!r.success) alert(r.error);
                       else { alert("导入成功，请重启应用"); onClose(); }
-                    }}>导入角色卡</Button>
-                  </Flex>
+                    }}>导入角色卡</button>
+                  </div>
 
-                  <Flex gap="2">
-                    <Button variant="soft" size="2" style={{ flex: 1 }} onClick={async () => {
+                  <h3 className="ym-section-title">聊天记录</h3>
+                  <div className="ym-form__row">
+                    <button type="button" className="ym-btn ym-btn--outline ym-focus" onClick={async () => {
                       const r = await window.api.exportChat("json") as { success: boolean; error?: string };
                       if (!r.success) alert(r.error);
-                    }}>导出聊天 (JSON)</Button>
-                    <Button variant="soft" size="2" style={{ flex: 1 }} onClick={async () => {
+                    }}>导出 JSON</button>
+                    <button type="button" className="ym-btn ym-btn--outline ym-focus" onClick={async () => {
                       const r = await window.api.exportChat("txt") as { success: boolean; error?: string };
                       if (!r.success) alert(r.error);
-                    }}>导出聊天 (TXT)</Button>
-                  </Flex>
+                    }}>导出 TXT</button>
+                  </div>
 
-                  <Flex direction="column" gap="4" mt="3">
-                    <Text size="1" color="gray">
-                      重置将删除所有数据，包括角色卡、模型配置、聊天记录和记忆数据。操作后需要重新进行初始化设置。
-                    </Text>
+                  <h3 className="ym-section-title">重置</h3>
+                  <p className="ym-note">
+                    重置会删除角色卡、模型配置、聊天记录与记忆数据，操作后需要重新完成初始化设置。
+                  </p>
 
-                    {resetStep === 0 && (
-                      <Button color="red" variant="outline" size="2" onClick={handleReset}>
-                        重置所有数据...
-                      </Button>
-                    )}
+                  {resetStep === 0 && (
+                    <button type="button" className="ym-btn ym-btn--outline ym-focus" onClick={handleReset}>
+                      重置所有数据...
+                    </button>
+                  )}
 
-                    {resetStep === 1 && (
-                      <Flex direction="column" gap="3" style={{
-                        padding: 16,
-                        border: "1px solid var(--red-8)",
-                        borderRadius: "var(--radius-3)",
-                        background: "var(--red-3)",
-                      }}>
-                        <Text size="1" weight="medium" style={{ color: "var(--red-9)" }}>
-                          此操作不可撤销！所有数据将被永久删除。
-                        </Text>
-                        <Text size="1" color="gray">
-                          请输入 "RESET" 确认删除：
-                        </Text>
-                        <TextField.Root
+                  {resetStep === 1 && (
+                    <div className="ym-danger-zone">
+                      <p className="ym-danger-zone__title">
+                        <span className="ym-error-mark" aria-hidden="true">!</span>
+                        此操作不可撤销，所有数据将被永久删除
+                      </p>
+                      <Field label='输入 "RESET" 以确认' htmlFor="ym-reset-input">
+                        <Input
+                          id="ym-reset-input"
                           value={resetInput}
                           onChange={(e) => setResetInput(e.target.value)}
-                          placeholder="输入 RESET"
+                          placeholder="RESET"
                         />
-                        <Flex gap="2">
-                          <Button
-                            color="red"
-                            size="2"
-                            disabled={resetInput !== "RESET" || resetLoading}
-                            onClick={handleReset}
-                          >
-                            {resetLoading ? "删除中..." : "确认删除"}
-                          </Button>
-                          <Button variant="ghost" size="2" onClick={handleResetCancel}>
-                            取消
-                          </Button>
-                        </Flex>
-                      </Flex>
-                    )}
-                  </Flex>
-                </Flex>
+                      </Field>
+                      <div className="ym-form__row">
+                        <button
+                          type="button"
+                          className="ym-btn ym-btn--danger ym-focus"
+                          disabled={resetInput !== "RESET" || resetLoading}
+                          onClick={handleReset}
+                        >
+                          {resetLoading ? "删除中..." : "确认删除"}
+                        </button>
+                        <button type="button" className="ym-btn ym-btn--ghost ym-focus" onClick={handleResetCancel}>
+                          取消
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </Tabs.Content>
 
-              <Tabs.Content value="about">
-                <Flex direction="column" align="center" gap="3">
-                  <Flex
-                    width="56px" height="56px" align="center" justify="center"
-                    style={{ borderRadius: "var(--radius-4)", background: "var(--accent-3)" }}
-                  >
-                    <Heart size={24} color="var(--accent-9)" fill="var(--accent-9)" />
-                  </Flex>
-                  <Flex direction="column" align="center" gap="1">
-                    <h4 className="text-lg font-semibold">梦间 / Yumema</h4>
-                    <Text size="1" color="gray">v{appVersion || "0.0.0"}</Text>
-                  </Flex>
-                </Flex>
+              <Tabs.Content value="about" className="ym-settings__content">
+                <div className="ym-form">
+                  <div className="ym-about">
+                    <span className="ym-about__mark" aria-hidden="true">
+                      <Heart size={24} fill="currentColor" />
+                    </span>
+                    <div>
+                      <p className="ym-about__name">梦间 / Yumema</p>
+                      <p className="ym-kicker">v{appVersion || "0.0.0"}</p>
+                    </div>
+                  </div>
 
-                <Flex direction="column" gap="3" style={{ borderTop: "1px solid var(--gray-4)", paddingTop: 16 }}>
-                  <Text size="1" color="gray" align="center">
-                    桌面伴侣应用 · 基于 Electron + React 构建
-                  </Text>
-                  <Flex direction="column" gap="1" align="center" style={{ borderTop: "1px solid var(--gray-4)", paddingTop: 12 }}>
-                    <Text size="1" color="gray">作者：梦夜十六</Text>
-                    <Text size="1" color="gray">协议：GPL-3.0</Text>
-                    <Text size="1" color="gray">仓库：github.com/dreamnight16/Yumema</Text>
-                    <Text size="1" color="gray">反馈：erk163@163.com</Text>
-                  </Flex>
-                  <Text size="1" color="gray" align="center" style={{ borderTop: "1px solid var(--gray-4)", paddingTop: 12 }}>
-                    Copyright (c) 2026 DreamNight<br />
-                    对话内容由所选模型生成，请自行判断
-                  </Text>
-                </Flex>
+                  <dl className="ym-fact ym-about__facts">
+                    <div><dt>形态</dt><dd>桌面伴侣应用 · Electron + React</dd></div>
+                    <div><dt>作者</dt><dd>梦夜十六</dd></div>
+                    <div><dt>协议</dt><dd>GPL-3.0</dd></div>
+                    <div><dt>仓库</dt><dd>github.com/dreamnight16/ai-companion</dd></div>
+                    <div><dt>反馈</dt><dd>erk163@163.com</dd></div>
+                  </dl>
+
+                  <p className="ym-note">
+                    Copyright (c) 2026 DreamNight。对话内容由所选模型生成，请自行判断。
+                  </p>
+                </div>
               </Tabs.Content>
-            </Flex>
+            </div>
           </Tabs.Root>
-        </Flex>
-        </GlassCard>
-      </Dialog.Content>
+        </Dialog.Content>
+      </Dialog.Portal>
     </Dialog.Root>
   );
 }

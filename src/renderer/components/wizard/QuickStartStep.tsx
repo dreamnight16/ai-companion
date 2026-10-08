@@ -59,44 +59,37 @@ export default function QuickStartStep({
   };
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <h2 className="text-base font-semibold">选择角色模板</h2>
-        <p className="text-xs text-muted-foreground">选一个喜欢的起点，后面可以自定义修改</p>
-      </div>
+    <div className="ym-form">
+      <header className="ym-step-head">
+        <h2 className="ym-step-title">选择角色模板</h2>
+        <p className="ym-note">选一个喜欢的起点，后面可以自定义修改；也可以直接从空白创建。</p>
+      </header>
 
-      <div className="flex flex-col gap-3">
+      <div className="ym-options">
         {getTemplates().map((t) => (
           <button
             key={t.key}
+            type="button"
             onClick={() => applyTemplate(t)}
-            className="flex items-center gap-3 p-4 rounded-xl border border-border bg-card hover:bg-muted/50 hover:border-primary/30 transition-colors text-left"
+            className="ym-option ym-focus"
           >
-            <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 text-base shrink-0">
-              {t.emoji}
-            </div>
-            <div className="flex flex-col gap-2 min-w-0">
-              <span className="text-xs font-medium">{t.label}</span>
-              <span className="text-xs text-muted-foreground">{t.desc}</span>
-            </div>
+            <span className="ym-option__rule" aria-hidden="true" />
+            <span className="ym-option__body">
+              <span className="ym-option__label">{t.label}</span>
+              <span className="ym-option__desc">{t.desc}</span>
+            </span>
           </button>
         ))}
       </div>
 
-      <div className="flex items-center gap-2">
-        <div className="flex-1 h-px bg-border" />
-        <span className="text-xs text-muted-foreground">或</span>
-        <div className="flex-1 h-px bg-border" />
-      </div>
+      <hr className="ym-rule" />
 
-      <Button variant="outline" size="lg" onClick={handleImport} disabled={importing}>
+      <Button variant="outline" size="lg" className="w-full" onClick={handleImport} disabled={importing}>
         {importing ? "导入中..." : "导入角色卡 (JSON/PNG)"}
       </Button>
-      {importError && (
-        <p className="text-xs text-destructive">{importError}</p>
-      )}
+      {importError && <p className="ym-alert ym-alert--danger" role="alert">{importError}</p>}
 
-      <Button variant="ghost" size="lg" onClick={next}>
+      <Button variant="ghost" size="lg" className="w-full" onClick={next}>
         从空白创建
       </Button>
     </div>

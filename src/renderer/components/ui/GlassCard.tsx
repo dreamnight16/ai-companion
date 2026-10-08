@@ -1,18 +1,20 @@
 import type { ReactNode, CSSProperties } from "react";
 
 /**
- * 统一卡片 — 两种视觉变体
+ * 面板 —— DNDL 层级语言。
  *
- * variant="glass" (默认) — 玻璃态，rounded-2xl (16px)，用作弹窗/大面积面板
- * variant="solid" — 实体态，rounded-xl (12px)，边框+背景，用作设置/表单内嵌卡片
+ * variant="surface"（默认）：Level 1 实色 Surface，用于页面内区块。
+ * variant="solid"：同样是不透明 Surface，用于表单/列表内的紧凑区块。
+ * variant="acrylic"：Level 3 覆盖层材质，必须叠加在不透明回退之上
+ *   （回退逻辑在 materials.css 的 .dn-acrylic 内，随浏览器能力和用户偏好切换）。
  *
- * 间距对齐 8px 软网格：glass 默认 p-6 (24px)，solid 默认 p-4 (16px)
+ * 保留 variant="glass" 作为 acrylic 的旧名，避免破坏既有引用。
  */
+type Variant = "surface" | "solid" | "acrylic" | "glass";
 
 interface GlassCardProps {
   children: ReactNode;
-  /** 视觉变体 */
-  variant?: "glass" | "solid";
+  variant?: Variant;
   /** Tailwind 内边距类，覆盖 variant 默认值 */
   padding?: string;
   className?: string;
@@ -22,7 +24,7 @@ interface GlassCardProps {
 
 export function GlassCard({
   children,
-  variant = "glass",
+  variant = "surface",
   padding,
   className = "",
   style,
@@ -42,51 +44,49 @@ export function GlassCard({
       }
     : {};
 
-  if (variant === "solid") {
-    return (
-      <div
-        className={`rounded-xl border bg-card border-border shadow-sm overflow-hidden ${onClick ? "cursor-pointer focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none" : ""} ${className}`}
-        style={style}
-        {...interactiveProps}
-      >
-        <div className={padding ?? "p-4"}>{children}</div>
-      </div>
-    );
-  }
+  const isAcrylic = variant === "acrylic" || variant === "glass";
+  const defaultPadding = variant === "solid" ? "p-4" : "p-6";
 
   return (
     <div
-      className={`glass-shine rounded-2xl overflow-hidden ${onClick ? "cursor-pointer focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none" : ""} ${className}`}
+      className={[
+        isAcrylic ? "dn-acrylic dn-elevation-3" : "ym-panel",
+        onClick ? "ym-focus cursor-pointer" : "",
+        className,
+      ].filter(Boolean).join(" ")}
       style={style}
       {...interactiveProps}
     >
-      <div className={padding ?? "p-6"}>{children}</div>
+      <div className={padding ?? defaultPadding}>{children}</div>
     </div>
   );
 }
 
-/**
- * 弹窗/卡片标题栏 — 统一布局：左侧标题 + 右侧关闭按钮
- * 关闭按钮：w-10 h-10，保证足够大的点击区域
- */
+/** 面板/弹窗标题栏：左侧标题 + 右侧关闭按钮（≥44px 触控目标） */
 interface HeaderProps {
   title: string;
   onClose: () => void;
+  /** 标题右侧的补充说明，例如当前所在产品区域 */
+  meta?: ReactNode;
 }
 
-export function CardHeader({ title, onClose }: HeaderProps) {
+export function CardHeader({ title, onClose, meta }: HeaderProps) {
   return (
     <div
-      className="flex items-center justify-between"
-      style={{ padding: "20px 28px", WebkitAppRegion: "no-drag" }}
+      className="flex items-center justify-between gap-4 border-b border-border"
+      style={{ padding: "14px 20px", WebkitAppRegion: "no-drag" }}
     >
-      <h3 className="text-base font-semibold" style={{ padding: 0, margin: 0 }}>{title}</h3>
+      <div className="min-w-0 flex flex-col">
+        <h3 className="text-base font-medium truncate">{title}</h3>
+        {meta && <span className="ym-kicker text-muted-foreground">{meta}</span>}
+      </div>
       <button
+        type="button"
         onClick={onClose}
-        className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-muted transition-colors"
+        className="ym-icon-btn ym-focus"
         aria-label="关闭"
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <line x1="18" y1="6" x2="6" y2="18" />
           <line x1="6" y1="6" x2="18" y2="18" />
         </svg>
@@ -96,21 +96,20 @@ export function CardHeader({ title, onClose }: HeaderProps) {
 }
 
 /**
- * 弹窗遮罩层（半透明背景 + 居中内容）
- * 自动处理 WebkitAppRegion 防止 macOS 拖拽区域拦截点击
+ * 覆盖层遮罩：不透明遮罩（--dn-overlay），不使用模糊，
+ * 底层页面保持原样不清空（关闭后状态与滚动位置不变）。
  */
 interface OverlayProps {
   children: ReactNode;
   onClose: () => void;
-  /** 内容区距顶部偏移，默认 pt-20 */
   offset?: string;
 }
 
 export function DialogOverlay({ children, onClose, offset = "pt-20" }: OverlayProps) {
   return (
     <div
-      className={`fixed inset-0 z-50 flex items-start justify-center ${offset} bg-black/20 backdrop-blur-sm fade-in`}
-      style={{ WebkitAppRegion: "no-drag" }}
+      className={`fixed inset-0 z-50 flex items-start justify-center ${offset} fade-in`}
+      style={{ background: "var(--dn-overlay)", WebkitAppRegion: "no-drag" }}
       onClick={onClose}
     >
       {children}

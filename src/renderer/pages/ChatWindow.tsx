@@ -1,19 +1,67 @@
 import { useState, useEffect, useCallback } from "react";
-import { Heart, Settings, MessageCircle, MessageSquare, MessageCircleHeart, Search, Send } from "lucide-react";
-import { Flex, Text, Dialog } from "@radix-ui/themes";
+import { Heart, Settings, MessageCircle, MessageSquare, Search, Send, MessageSquareHeart } from "lucide-react";
+import * as Dialog from "@radix-ui/react-dialog";
 import { useChat } from "../hooks/useChat";
 import MessageList from "../components/chat/MessageList";
 import Button from "../components/ui/Button";
-import { GlassCard, CardHeader } from "../components/ui/GlassCard";
 import SettingsDialog from "../components/shared/SettingsDialog";
 import UpdateToast from "../components/shared/UpdateToast";
 import SurveyDialog, { shouldShowSurvey } from "../components/shared/SurveyDialog";
-import { getModels, isCustomModelProvider } from "../lib/models";
+import { getModels } from "../lib/models";
 import NapCatSetup from "./NapCatSetup";
 import WeChatSetup from "./WeChatSetup";
 
+type ChannelState = "connected" | "busy" | "off" | "error";
+
+const CHANNEL_LABEL: Record<ChannelState, string> = {
+  connected: "已连接",
+  busy: "连接中",
+  off: "未启动",
+  error: "异常",
+};
+
+function channelState(status: string): ChannelState {
+  if (status === "connected") return "connected";
+  if (["downloading", "extracting", "configuring", "starting", "waiting-qr", "checking", "pulling"].includes(status)) return "busy";
+  if (status === "error" || status === "no-docker") return "error";
+  return "off";
+}
+
+const RELATION_LABEL: Record<string, string> = { girlfriend: "女朋友", boyfriend: "男朋友" };
+const MODE_LABEL: Record<string, string> = { direct: "直接情侣", slow_burn: "养成模式" };
+
+/** 渠道连接状态 —— 来自主进程真实状态，不轮询、不编造 */
+function useChannelStatus() {
+  const [qq, setQq] = useState<string>("stopped");
+  const [wechat, setWechat] = useState<string>("stopped");
+
+  useEffect(() => {
+    let mounted = true;
+    window.api.getNapCatStatus().then((s: unknown) => {
+      if (mounted) setQq((s as { status?: string })?.status ?? "stopped");
+    }).catch(() => {});
+    window.api.getWeChatStatus().then((s: unknown) => {
+      if (mounted) setWechat((s as { status?: string })?.status ?? "stopped");
+    }).catch(() => {});
+    const unsubQq = window.api.on("napcat:status-changed", (s: unknown) => {
+      setQq((s as { status?: string })?.status ?? "stopped");
+    });
+    const unsubWc = window.api.on("wechat:status-changed", (s: unknown) => {
+      setWechat((s as { status?: string })?.status ?? "stopped");
+    });
+    return () => { mounted = false; unsubQq(); unsubWc(); };
+  }, []);
+
+  return { qq, wechat };
+}
+
 export default function ChatWindow() {
-  const { messages, typing, composing, profile, messagesEndRef, sendMessage, regenerate, queueSize, pending, onTypingActivity } = useChat();
+  const {
+    messages, typing, composing, profile, messagesEndRef,
+    sendMessage, regenerate, queueSize, pending, onTypingActivity,
+  } = useChat();
+  const channels = useChannelStatus();
+
   const [draft, setDraft] = useState("");
   const [showSettings, setShowSettings] = useState(false);
   const [showNapCat, setShowNapCat] = useState(false);
@@ -22,7 +70,8 @@ export default function ChatWindow() {
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchHits, setSearchHits] = useState<Array<{ snippet: string; role: string; timestamp: string }>>([]);
-  const [time, setTime] = useState("");
+  const [searched, setSearched] = useState(false);
+  const [now, setNow] = useState(() => new Date());
   const [avatarData, setAvatarData] = useState<string | null>(null);
   const [currentModel, setCurrentModel] = useState("");
   const [appVersion, setAppVersion] = useState("");
@@ -30,6 +79,7 @@ export default function ChatWindow() {
   const doSearch = useCallback(async (query: string) => {
     const q = query.trim();
     if (q.length < 2) return;
+    setSearched(true);
     const diskHits = (await window.api.searchChat(q)) as Array<{ snippet: string; role: string; timestamp: string }>;
     const localHits = messages
       .filter((m) => m.content.toLowerCase().includes(q.toLowerCase()))
@@ -47,15 +97,53 @@ export default function ChatWindow() {
       .slice(0, 50));
   }, [messages]);
 
-  useEffect(() => { let m = true; window.api.getAvatar().then((d: unknown) => { if (m) setAvatarData(d as string | null); }); window.api.getConfig().then((c: unknown) => { if (!m) return; const ai = (c as { ai?: { model?: string } }).ai; if (ai?.model) setCurrentModel(ai.model); }); window.api.getVersion().then((v: string) => { if (m) setAppVersion(v); }); return () => { m = false; }; }, []);
-  useEffect(() => { setTime(new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })); const t = setInterval(() => setTime(new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })), 30000); return () => clearInterval(t); }, []);
+  useEffect(() => {
+    let mounted = true;
+    window.api.getAvatar().then((d: unknown) => { if (mounted) setAvatarData(d as string | null); });
+    window.api.getConfig().then((c: unknown) => {
+      if (!mounted) return;
+      const ai = (c as { ai?: { model?: string } }).ai;
+      if (ai?.model) setCurrentModel(ai.model);
+    });
+    window.api.getVersion().then((v: string) => { if (mounted) setAppVersion(v); });
+    return () => { mounted = false; };
+  }, []);
+
+  // 侧栏时间：真实的本地时间，每 30 秒对齐一次
+  useEffect(() => {
+    setNow(new Date());
+    const t = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(t);
+  }, []);
+
   useEffect(() => { if (shouldShowSurvey()) setShowSurvey(true); }, []);
 
-  if (showNapCat) return <NapCatSetup onBack={() => setShowNapCat(false)} />;
-  if (showWeChat) return <WeChatSetup onBack={() => setShowWeChat(false)} />;
+  const name = (profile?.name as string) || "伴侣";
+  const nickname = (profile?.user_nickname as string) || "你";
+  const relationship = RELATION_LABEL[profile?.relationship_type as string] || "";
+  const mode = MODE_LABEL[profile?.relationship_mode as string] || "";
+  const city = (profile?.city as string) || (profile?.user_city as string) || "";
+  const occupation = (profile?.occupation as string) || "";
 
-  const name = (profile?.name as string) || "V-Partner";
-  const placeholder = queueSize > 0 ? `还有 ${queueSize} 条消息排队` : pending ? "可以继续写，稍后一起发出" : "想聊点什么？按 Enter 发送";
+  const qqState = channelState(channels.qq);
+  const wechatState = channelState(channels.wechat);
+
+  const liveState = composing
+    ? "正在输入"
+    : typing
+      ? "正在组织回复"
+      : queueSize > 0
+        ? `${queueSize} 条排队中`
+        : pending
+          ? "等待发送"
+          : "空闲";
+  const liveStateTone: ChannelState = composing || typing || queueSize > 0 || pending ? "busy" : "off";
+
+  const placeholder = queueSize > 0
+    ? `还有 ${queueSize} 条消息排队，发送后会依次回复`
+    : pending
+      ? "可以继续写，稍后一起发出"
+      : "想聊点什么？Enter 发送，Shift+Enter 换行";
   const canSend = draft.trim().length > 0;
 
   const handleSend = () => {
@@ -64,80 +152,248 @@ export default function ChatWindow() {
     setDraft("");
   };
 
-  const sidebarItem = (icon: React.ReactNode, label: string, onClick: () => void) => (
-    <button onClick={onClick} aria-label={label} title={label} className="companion-sidebar-item flex items-center gap-3 w-full px-4 py-3 rounded-xl text-lg transition-colors text-muted-foreground hover:text-foreground hover:bg-muted" style={{ WebkitAppRegion: "no-drag" }}>
-      <span style={{ width: 24, display: "flex", justifyContent: "center", flexShrink: 0 }}>{icon}</span><span className="companion-sidebar-label">{label}</span>
-    </button>
-  );
+  const cycleModel = async () => {
+    if (!currentModel) return;
+    const prev = currentModel;
+    const provider = currentModel.includes("claude") ? "anthropic" : currentModel.includes("gpt") ? "openai" : null;
+    const models = provider ? getModels(provider) : [currentModel];
+    const next = models[((models.indexOf(currentModel) + 1) % models.length)] || models[0];
+    if (next === currentModel) return;
+    setCurrentModel(next);
+    try {
+      await window.api.updateConfig({ ai: { model: next } });
+    } catch {
+      setCurrentModel(prev);
+    }
+  };
+
+  const pickAvatar = async () => {
+    try {
+      const d = await window.api.pickAvatar();
+      if (d) setAvatarData(d as string);
+    } catch { /* 用户取消或读取失败时保持原头像 */ }
+  };
 
   return (
-    <Flex height="100vh" className="page-enter" style={{ background: "transparent" }}>
+    <div className="ym-app">
       <UpdateToast />
-      <nav className="companion-sidebar glass-shine" style={{ width: 220, flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", WebkitAppRegion: "drag", paddingTop: 44, borderRadius: 0, border: "none", borderRight: "1px solid var(--border)" }}>
-        <div style={{ padding: "20px 16px 12px", WebkitAppRegion: "no-drag" }}>
-          <Flex direction="column" align="center" gap="3">
-            <div style={{ width: 56, height: 56, borderRadius: "50%", overflow: "hidden", cursor: "pointer", background: "var(--accent-3)", border: "2px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center" }}
-              onClick={async () => { try { const d = await window.api.pickAvatar(); if (d) setAvatarData(d as string); } catch { /* ignore */ } }}>
-              {avatarData ? <img src={avatarData} alt="avatar" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <Heart size={24} style={{ color: "var(--primary)" }} fill="currentColor" />}
-            </div>
-            <Text size="3" weight="medium" className="profile-name">{name}</Text>
-            <Text size="1" color="gray" className="profile-time">{time}</Text>
-            {composing && <Text size="1" color="gray" style={{ marginTop: 4 }}>对方正在输入...</Text>}
-          </Flex>
-        </div>
-        {currentModel && (
-          <div className="companion-model-switcher" style={{ padding: "0 16px 12px", WebkitAppRegion: "no-drag" }}>
-            <button onClick={async () => {
-              const prev = currentModel;
-              const provider = currentModel.includes("claude") ? "anthropic" : currentModel.includes("gpt") ? "openai" : null;
-              const models = provider ? getModels(provider) : [currentModel];
-              const next = models[((models.indexOf(currentModel) + 1) % models.length)] || models[0];
-              if (next !== currentModel) { try { await window.api.updateConfig({ ai: { model: next } }); setCurrentModel(next); } catch { setCurrentModel(prev); } }
-            }} className="w-full text-xs text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg border border-border hover:bg-muted transition-colors truncate text-center">{currentModel}</button>
+
+      {/* ===== 身份色块：品牌 Teal 实色，承载真实资料与连接状态 ===== */}
+      <nav className="ym-rail" aria-label="主导航">
+        <div className="ym-rail__top" style={{ WebkitAppRegion: "drag" }}>
+          <span className="ym-kicker ym-rail__brand">梦间 / Yumema</span>
+
+          <button
+            type="button"
+            onClick={pickAvatar}
+            className="ym-rail__avatar ym-focus"
+            style={{ WebkitAppRegion: "no-drag" }}
+            aria-label="更换伴侣头像"
+            title="更换伴侣头像"
+          >
+            {avatarData
+              ? <img src={avatarData} alt="" />
+              : <Heart size={22} aria-hidden="true" />}
+          </button>
+
+          <h1 className="ym-rail__name">{name}</h1>
+          <p className="ym-rail__role">
+            {[relationship, mode].filter(Boolean).join(" · ") || "尚未设置关系"}
+          </p>
+
+          <div className="ym-rail__live">
+            <span className="ym-status-dot" data-state={liveStateTone === "busy" ? "busy" : "off"} aria-hidden="true" />
+            <span>{liveState}</span>
           </div>
-        )}
-        <div style={{ borderTop: "1px solid rgba(255,255,255,0.15)", width: "80%", margin: "4px auto" }} />
-        <div style={{ flex: 1, padding: "16px 16px", display: "flex", flexDirection: "column", gap: 8, WebkitAppRegion: "no-drag" }}>
-          {sidebarItem(<MessageCircle size={24} />, "QQ", () => setShowNapCat(true))}
-          {sidebarItem(<MessageSquare size={24} />, "微信", () => setShowWeChat(true))}
-          {sidebarItem(<Search size={24} />, "搜索", () => setShowSearch(true))}
-          {sidebarItem(<MessageCircleHeart size={24} />, "反馈", () => setShowSurvey(true))}
-          {sidebarItem(<Settings size={24} />, "设置", () => setShowSettings(true))}
+
+          <dl className="ym-fact ym-rail__facts">
+            {city && <div><dt>城市</dt><dd>{city}</dd></div>}
+            {occupation && <div><dt>职业</dt><dd>{occupation}</dd></div>}
+            <div><dt>称呼</dt><dd>{nickname}</dd></div>
+          </dl>
+
+          {currentModel && (
+            <button
+              type="button"
+              onClick={cycleModel}
+              className="ym-rail__model ym-focus"
+              style={{ WebkitAppRegion: "no-drag" }}
+              title="切换到下一个可用模型"
+            >
+              <span className="ym-kicker">模型</span>
+              <span className="ym-rail__model-name">{currentModel}</span>
+            </button>
+          )}
         </div>
-        <Text size="1" color="gray" align="center" style={{ padding: "12px 0", WebkitAppRegion: "no-drag" }}>v{appVersion || "0.0.0"}</Text>
+
+        <div className="ym-rail__nav" style={{ WebkitAppRegion: "no-drag" }}>
+          <button type="button" className="ym-nav-item ym-focus ym-rail__item" aria-current="true">
+            <MessageSquareHeart size={20} aria-hidden="true" />
+            <span className="ym-rail__label">会话</span>
+          </button>
+          <button type="button" className="ym-nav-item ym-focus ym-rail__item" onClick={() => setShowSearch(true)}>
+            <Search size={20} aria-hidden="true" />
+            <span className="ym-rail__label">搜索记录</span>
+          </button>
+          <button type="button" className="ym-nav-item ym-focus ym-rail__item" onClick={() => setShowSettings(true)}>
+            <Settings size={20} aria-hidden="true" />
+            <span className="ym-rail__label">设置</span>
+          </button>
+          <button type="button" className="ym-nav-item ym-focus ym-rail__item" onClick={() => setShowSurvey(true)}>
+            <MessageCircle size={20} aria-hidden="true" />
+            <span className="ym-rail__label">反馈</span>
+          </button>
+        </div>
+
+        <div className="ym-rail__channels" style={{ WebkitAppRegion: "no-drag" }}>
+          <span className="ym-kicker ym-rail__section">聊天渠道</span>
+          <button type="button" onClick={() => setShowNapCat(true)} className="ym-channel ym-focus">
+            <MessageCircle size={18} aria-hidden="true" />
+            <span className="ym-rail__label">QQ</span>
+            <span className="ym-channel__state">
+              <span className="ym-status-dot" data-state={qqState === "connected" ? "on" : qqState === "busy" ? "busy" : "off"} aria-hidden="true" />
+              {CHANNEL_LABEL[qqState]}
+            </span>
+          </button>
+          <button type="button" onClick={() => setShowWeChat(true)} className="ym-channel ym-focus">
+            <MessageSquare size={18} aria-hidden="true" />
+            <span className="ym-rail__label">微信</span>
+            <span className="ym-channel__state">
+              <span className="ym-status-dot" data-state={wechatState === "connected" ? "on" : wechatState === "busy" ? "busy" : "off"} aria-hidden="true" />
+              {CHANNEL_LABEL[wechatState]}
+            </span>
+          </button>
+        </div>
+
+        <div className="ym-rail__foot" style={{ WebkitAppRegion: "no-drag" }}>
+          <time className="ym-kicker" dateTime={now.toISOString()}>
+            {now.toLocaleDateString("zh-CN", { month: "long", day: "numeric", weekday: "short" })}
+            {" · "}
+            {now.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}
+          </time>
+          <span className="ym-kicker">v{appVersion || "0.0.0"}</span>
+        </div>
       </nav>
 
-      <div className="companion-main" style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        <div style={{ flex: 1, overflowY: "auto", maxWidth: 768, margin: "16px auto 24px", width: "100%", padding: "0 16px" }}>
-          <MessageList messages={messages} typing={typing} composing={composing} messagesEndRef={messagesEndRef} onRegenerate={regenerate} />
+      {/* ===== 会话 ===== */}
+      <main className="ym-main">
+        <div className="ym-stream">
+          <MessageList
+            messages={messages}
+            typing={typing}
+            composing={composing}
+            messagesEndRef={messagesEndRef}
+            onRegenerate={regenerate}
+          />
         </div>
-        <div style={{ maxWidth: 768, margin: "0 auto 16px", width: "100%", padding: "0 16px" }}>
-          <div className="glass-shine" style={{ position: "relative", display: "flex", alignItems: "center", padding: "8px 8px 8px 16px", borderRadius: 16 }}>
-            <textarea value={draft}
-              onChange={(e) => { setDraft(e.target.value); onTypingActivity(); const el = e.target; el.style.height = "auto"; el.style.height = Math.min(el.scrollHeight, 96) + "px"; }}
-              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-              rows={1} placeholder={placeholder}
-              style={{ flex: 1, background: "transparent", border: "none", outline: "none", resize: "none", fontSize: 16, fontFamily: "inherit", lineHeight: "20px", minHeight: 20, maxHeight: 96, color: "var(--foreground)", padding: "8px 0" }} />
-            <Button iconOnly variant={canSend ? "primary" : "ghost"} onClick={handleSend} disabled={!canSend} style={{ marginLeft: 8 }}><Send size={16} /></Button>
-            {queueSize > 0 && (<span style={{ position: "absolute", top: -6, right: -6, background: "var(--accent-9)", color: "#fff", borderRadius: "50%", width: 18, height: 18, fontSize: 10, display: "flex", alignItems: "center", justifyContent: "center" }}>{queueSize}</span>)}
+
+        <div className="ym-composer">
+          <div className="ym-composer__inner">
+            <label className="sr-only" htmlFor="ym-draft">消息内容</label>
+            <textarea
+              id="ym-draft"
+              value={draft}
+              onChange={(e) => {
+                setDraft(e.target.value);
+                onTypingActivity();
+                const el = e.target;
+                el.style.height = "auto";
+                el.style.height = Math.min(el.scrollHeight, 120) + "px";
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
+              rows={1}
+              placeholder={placeholder}
+              className="ym-composer__field ym-focus"
+            />
+            <Button
+              iconOnly
+              variant="primary"
+              onClick={handleSend}
+              disabled={!canSend}
+              aria-label="发送消息"
+              title="发送"
+            >
+              <Send size={16} aria-hidden="true" />
+            </Button>
+          </div>
+          <div className="ym-composer__meta">
+            <span className="ym-kicker">应用内会话</span>
+            <span className="ym-composer__hint">
+              {pending || queueSize > 0 ? "发送前会合并短时间内的多条消息" : "Enter 发送 · Shift+Enter 换行"}
+            </span>
           </div>
         </div>
-      </div>
+      </main>
 
+      {/* ===== 覆盖层：底层页面与滚动位置保持不变 ===== */}
       {showSettings && <SettingsDialog onClose={() => setShowSettings(false)} />}
       {showSurvey && <SurveyDialog onClose={() => setShowSurvey(false)} />}
+      {showNapCat && <NapCatSetup onBack={() => setShowNapCat(false)} />}
+      {showWeChat && <WeChatSetup onBack={() => setShowWeChat(false)} />}
 
-      {showSearch && (
-        <Dialog.Root open onOpenChange={() => setShowSearch(false)}>
-          <Dialog.Content style={{ padding: 0, background: "transparent", maxWidth: 448 }}>
-            <GlassCard padding="p-0">
-              <CardHeader title="搜索聊天记录" onClose={() => setShowSearch(false)} />
-              <div style={{ padding: "28px 28px 20px", display: "flex", gap: 8 }}><input type="text" className="flex-1 rounded-xl text-sm bg-background border border-input text-foreground outline-none" style={{ padding: "12px 16px" }} placeholder="搜索关键词..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && searchQuery.trim().length >= 2) doSearch(searchQuery); }} /><Button variant="primary" onClick={() => doSearch(searchQuery)} disabled={searchQuery.trim().length < 2}>搜索</Button></div>
-              <div className="max-h-[50vh] overflow-y-auto">{searchHits.length > 0 && (<div style={{ padding: "0 28px 24px" }} className="space-y-2">{searchHits.map((hit, i) => (<div key={`${hit.timestamp}-${i}`} className="rounded-xl border border-border" style={{ background: hit.role === "user" ? "var(--vp-bubble-user-glass)" : "var(--vp-bubble-partner-glass)" }}><div className="p-4"><Flex justify="between" mb="1"><Text size="1" color="gray">{hit.role === "user" ? "你" : "TA"} · {new Date(hit.timestamp).toLocaleString("zh-CN")}</Text></Flex><Text size="2" style={{ wordBreak: "break-word" }}>{hit.snippet}</Text></div></div>))}</div>)}{searchHits.length === 0 && searchQuery.trim().length >= 2 && (<div style={{ padding: "0 28px 28px", textAlign: "center" }}><Text size="2" color="gray">未找到相关消息</Text></div>)}</div>
-            </GlassCard>
+      <Dialog.Root open={showSearch} onOpenChange={(open) => { if (!open) { setShowSearch(false); setSearched(false); } }}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="ym-scrim" />
+          <Dialog.Content className="ym-dialog ym-dialog--wide dn-acrylic dn-elevation-3">
+            <header className="ym-dialog__head">
+              <div>
+                <Dialog.Title className="ym-dialog__title">搜索聊天记录</Dialog.Title>
+                <Dialog.Description className="ym-dialog__desc">
+                  同时检索本地保存的历史记录与当前会话
+                </Dialog.Description>
+              </div>
+              <Dialog.Close asChild>
+                <button type="button" className="ym-icon-btn ym-focus" aria-label="关闭搜索">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              </Dialog.Close>
+            </header>
+
+            <div className="ym-search">
+              <div className="ym-search__bar">
+                <input
+                  type="search"
+                  className="ym-field ym-focus"
+                  placeholder="输入至少 2 个字符"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter" && searchQuery.trim().length >= 2) doSearch(searchQuery); }}
+                  aria-label="搜索关键词"
+                />
+                <Button variant="primary" onClick={() => doSearch(searchQuery)} disabled={searchQuery.trim().length < 2}>
+                  搜索
+                </Button>
+              </div>
+
+              <div className="ym-search__results">
+                {searchHits.map((hit, i) => (
+                  <article key={`${hit.timestamp}-${i}`} className="ym-hit">
+                    <div className="ym-hit__meta">
+                      <span className="ym-kicker">{hit.role === "user" ? "我" : name}</span>
+                      <span className="ym-kicker">{new Date(hit.timestamp).toLocaleString("zh-CN")}</span>
+                    </div>
+                    <p className="ym-hit__text">{hit.snippet}</p>
+                  </article>
+                ))}
+                {searched && searchHits.length === 0 && (
+                  <p className="ym-empty">没有匹配的消息</p>
+                )}
+                {!searched && (
+                  <p className="ym-empty">输入关键词后按 Enter 或点击搜索</p>
+                )}
+              </div>
+            </div>
           </Dialog.Content>
-        </Dialog.Root>
-      )}
-    </Flex>
+        </Dialog.Portal>
+      </Dialog.Root>
+    </div>
   );
 }

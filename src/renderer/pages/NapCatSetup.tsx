@@ -1,7 +1,23 @@
 import { useState, useEffect } from "react";
-import { Flex, Text, Button, Dialog } from "@radix-ui/themes";
-import { Cat } from "lucide-react";
-import { GlassCard, CardHeader } from "../components/ui/GlassCard";
+import * as Dialog from "@radix-ui/react-dialog";
+import { Cat, X } from "lucide-react";
+
+const STATUS_LABEL: Record<string, string> = {
+  stopped: "未启动",
+  downloading: "正在下载 NapCatQQ",
+  extracting: "正在解压",
+  configuring: "正在写入配置",
+  starting: "正在启动服务",
+  "waiting-qr": "等待扫码登录",
+  connected: "已连接",
+  error: "启动失败",
+};
+
+const STATUS_TONE: Record<string, string> = {
+  connected: "ym-state-block--ok",
+  error: "ym-state-block--danger",
+  stopped: "ym-state-block--idle",
+};
 
 export default function NapCatSetup({ onBack }: { onBack: () => void }) {
   const [status, setStatus] = useState<Record<string, unknown>>({ status: "stopped", message: "" });
@@ -28,88 +44,82 @@ export default function NapCatSetup({ onBack }: { onBack: () => void }) {
 
   const s = status.status as string;
   const isWorking = ["downloading", "extracting", "configuring", "starting"].includes(s);
+  const tone = STATUS_TONE[s] ?? "ym-state-block--busy";
+  const message = (status.message as string) || "";
 
   return (
-    <Dialog.Root open onOpenChange={() => onBack()}>
-      <Dialog.Content maxWidth="448px" style={{ padding: 0, background: "transparent" }}>
-        <GlassCard padding="p-0">
-          <CardHeader title="QQ 登录" onClose={onBack} />
-          <div style={{ padding: "24px 28px 28px" }}>
-            <Flex direction="column" align="center" gap="5">
+    <Dialog.Root open onOpenChange={(open) => { if (!open) onBack(); }}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="ym-scrim" />
+        <Dialog.Content className="ym-dialog dn-acrylic dn-elevation-3">
+          <header className="ym-dialog__head">
+            <div>
+              <Dialog.Title className="ym-dialog__title">QQ 登录</Dialog.Title>
+              <Dialog.Description className="ym-dialog__desc">
+                通过 NapCatQQ 接入 QQ 私聊与群聊
+              </Dialog.Description>
+            </div>
+            <Dialog.Close asChild>
+              <button type="button" className="ym-icon-btn ym-focus" aria-label="关闭 QQ 登录">
+                <X size={16} aria-hidden="true" />
+              </button>
+            </Dialog.Close>
+          </header>
+
+          <div className="ym-setup-panel">
+            <div className={`ym-state-block ${tone}`} role="status" aria-live="polite">
+              <Cat size={22} aria-hidden="true" />
+              <div>
+                <p className="ym-state-block__title">{STATUS_LABEL[s] || s}</p>
+                {message && <p className="ym-state-block__note">{message}</p>}
+              </div>
+            </div>
 
             {(s === "waiting-qr" || qrData) && (
-              <Flex direction="column" align="center" gap="4" className="scale-in">
-                <div style={{ border: "1px solid var(--border)", borderRadius: "var(--radius-4)", background: "var(--secondary)" }}>
-                  <div className="p-4">
-                    <Flex direction="column" align="center" gap="3">
-                      <Flex width="144px" height="144px" align="center" justify="center"
-                        style={{ background: "var(--gray-3)", borderRadius: "var(--radius-3)" }}>
-                        <Text size="1" color="gray">{qrData ? "QR 码" : "准备中..."}</Text>
-                      </Flex>
-                      <Text size="1" color="gray">{qrData ? "请用手机 QQ 扫描" : "准备中..."}</Text>
-                    </Flex>
-                  </div>
+              <div className="ym-form">
+                <p className="ym-note">
+                  打开手机 QQ，用「扫一扫」扫描二维码完成登录。扫码前请确认使用的是小号。
+                </p>
+                <div className="ym-qr" aria-hidden="true">
+                  {qrData ? "二维码地址已就绪，请在 NapCatQQ 窗口中扫描" : "正在准备二维码…"}
                 </div>
-                <Text size="2" color="gray">请使用手机 QQ 扫描二维码登录</Text>
-              </Flex>
+                {qrData && <p className="ym-kicker">登录地址已由 NapCatQQ 提供</p>}
+              </div>
             )}
 
             {isWorking && (
-              <Flex direction="column" align="center" gap="4" className="scale-in">
-                <div className="animate-spin" style={{ width: 48, height: 48, borderRadius: "50%", border: "2px solid var(--gray-5)", borderTopColor: "var(--accent-9)" }} />
-                <Text size="2" color="gray">{status.message as string || "处理中..."}</Text>
-              </Flex>
+              <p className="ym-note" role="status">
+                正在自动准备 NapCatQQ，首次运行需要下载，请保持网络畅通。
+              </p>
             )}
 
             {s === "connected" && (
-              <Flex direction="column" align="center" gap="4" className="scale-in">
-                <Flex width="64px" height="64px" align="center" justify="center"
-                  style={{ borderRadius: "50%", background: "var(--green-3)" }}>
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--green-9)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M20 6L9 17l-5-5" />
-                  </svg>
-                </Flex>
-                <Text size="3" weight="bold" style={{ color: "var(--green-9)" }}>QQ 已成功连接</Text>
-                <Button onClick={onBack} style={{ width: "100%" }}>返回聊天</Button>
-              </Flex>
+              <div className="ym-form">
+                <p className="ym-note">QQ 已经连接，可以回到会话继续聊天。</p>
+                <button type="button" className="ym-btn ym-btn--primary ym-focus" onClick={onBack}>返回会话</button>
+              </div>
             )}
 
             {s === "error" && (
-              <Flex direction="column" align="center" gap="4" className="scale-in">
-                <Flex width="64px" height="64px" align="center" justify="center"
-                  style={{ borderRadius: "50%", background: "var(--red-3)" }}>
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--red-9)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M12 8v4M12 16h.01" />
-                  </svg>
-                </Flex>
-                <Text size="2" color="red">{status.message as string || "启动失败"}</Text>
-                <Button onClick={handleStart} style={{ width: "100%" }}>重试</Button>
-              </Flex>
+              <div className="ym-form">
+                <p className="ym-alert ym-alert--danger" role="alert">{message || "启动失败"}</p>
+                <button type="button" className="ym-btn ym-btn--primary ym-focus" onClick={handleStart}>重试</button>
+              </div>
             )}
 
             {s !== "waiting-qr" && !qrData && !isWorking && s !== "connected" && s !== "error" && (
-              <Flex direction="column" align="center" gap="5" className="scale-in">
-                <Flex width="64px" height="64px" align="center" justify="center"
-                  style={{ borderRadius: "50%", background: "var(--accent-3)" }}>
-                  <Cat size={28} color="var(--accent-9)" />
-                </Flex>
-                <Flex direction="column" align="center" gap="1">
-                  <Text size="5" weight="bold">连接 QQ 机器人</Text>
-                  <Text size="2" color="gray" align="center">
-                    启动后需要扫码登录 QQ<br />建议使用小号，存在封号风险
-                  </Text>
-                </Flex>
-                <Button size="3" onClick={handleStart} style={{ width: "100%" }}>
+              <div className="ym-form">
+                <p className="ym-note">
+                  启动后需要扫码登录 QQ。QQ 接入使用第三方协议，存在封号风险，建议使用小号。
+                </p>
+                <button type="button" className="ym-btn ym-btn--primary ym-btn--lg ym-focus" onClick={handleStart}>
                   启动 NapCatQQ
-                </Button>
-              </Flex>
+                </button>
+              </div>
             )}
-
-            </Flex>
           </div>
-        </GlassCard>
-      </Dialog.Content>
+        </Dialog.Content>
+      </Dialog.Portal>
     </Dialog.Root>
   );
 }

@@ -1,0 +1,74 @@
+/* DNDL v1.0 / implementation 1.0.0. Framework-neutral; no reset or layout. */
+:root {
+  color-scheme: light;
+
+  /* Immutable v1.0 brand primitives. */
+  --dn-teal: #59AAA5;
+  --dn-cyan: #70B2D1;
+  --dn-emerald: #72AD8C;
+  --dn-violet: #A18BC8;
+  --dn-amber: #D4AC65;
+  --dn-orange: #D78E74;
+  --dn-steel: #829BA9;
+  --dn-crimson: #C98292;
+  --dn-canvas: #F9FBFA;
+  --dn-surface: #FFFFFF;
+  --dn-ink-primary: #253B39;
+  --dn-ink-secondary: #657B77;
+  --dn-ink-muted: #82938F;
+  --dn-divider: #E1E9E7;
+
+  /* Semantic text: validated on the backgrounds documented in DESIGN.md. */
+  --dn-text-primary: var(--dn-ink-primary);
+  --dn-text-secondary: #5B716B;
+  --dn-text-on-color: #102A27;
+  --dn-text-on-ink: var(--dn-surface);
+  --dn-focus: var(--dn-text-on-color);
+  --dn-control-border: var(--dn-text-secondary);
+
+  --dn-font: "Segoe UI", "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", "Noto Sans SC", -apple-system, BlinkMacSystemFont, sans-serif;
+  --dn-font-display: "Segoe UI Light", "Segoe UI", "PingFang SC", sans-serif;
+  --dn-weight-display: 300;
+  --dn-weight-body: 400;
+  --dn-weight-kicker: 600;
+  --dn-size-display: clamp(2.75rem, 6.67vw, 6rem);
+  --dn-size-h1: clamp(2rem, 3.34vw, 3rem);
+  --dn-size-h2: clamp(1.375rem, 2.23vw, 2rem);
+  --dn-size-body: 1rem;
+  --dn-size-kicker: 0.6875rem;
+  --dn-leading-display: 1.06;
+  --dn-leading-body: 1.7;
+  --dn-tracking-kicker: 2.2px;
+
+  --dn-radius: 0px;
+  --dn-target-min: 44px;
+  --dn-focus-width: 2px;
+  --dn-focus-offset: 4px;
+
+  /* Elevation is semantic, not a mandate to put shadows everywhere. */
+  --dn-shadow-0: none;
+  --dn-shadow-1: none;
+  --dn-shadow-2: 0 8px 24px rgba(37, 59, 57, 0.14);
+  --dn-shadow-3: 0 18px 48px rgba(37, 59, 57, 0.20);
+  --dn-shadow-4: 0 28px 80px rgba(37, 59, 57, 0.26);
+  --dn-z-floating: 20;
+  --dn-z-panel: 40;
+  --dn-z-modal: 60;
+  --dn-overlay: rgba(16, 42, 39, 0.32);
+
+  --dn-acrylic-blur: 16px;
+  --dn-acrylic-opacity: 0.82;
+  --dn-acrylic-background: rgba(255, 255, 255, var(--dn-acrylic-opacity));
+  --dn-acrylic-border: rgba(255, 255, 255, 0.35);
+
+  --dn-ease-in: cubic-bezier(.1, .9, .2, 1);
+  --dn-ease-out: cubic-bezier(.7, 0, 1, .5);
+  --dn-ease-snap: cubic-bezier(.17, .89, .32, 1.18);
+  --dn-duration-hover: 200ms;
+  --dn-duration-press: 140ms;
+  --dn-duration-expand: 380ms;
+  --dn-duration-page: 420ms;
+  --dn-stagger: 45ms;
+  --dn-hover-lift: -3px;
+  --dn-press-scale: 0.975;
+}

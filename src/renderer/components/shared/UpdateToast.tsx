@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import Button from "../ui/Button";
 import { GlassCard } from "../ui/GlassCard";
 
+/** 更新提示 —— Level 3 覆盖层，进度用真实下载百分比 */
 export default function UpdateToast() {
   const [visible, setVisible] = useState(false);
   const [status, setStatus] = useState<string>("");
@@ -48,49 +48,47 @@ export default function UpdateToast() {
   if (!visible) return null;
 
   return (
-    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 fade-in">
-      <GlassCard padding="p-4" className="min-w-[320px]">
-        <div className="flex items-center gap-4">
-        <div className="flex-1">
-          {status === "available" && (
-            <div className="text-sm">
-              <span className="font-medium">发现新版本</span>
-              <span className="ml-1 text-muted-foreground">v{version}</span>
-            </div>
-          )}
-          {status === "downloading" && (
-            <div className="text-sm">
-              <span className="text-muted-foreground">正在下载更新… {progress}%</span>
-              <div className="mt-1.5 h-1 rounded-full overflow-hidden bg-border">
+    <div className="ym-toast" role="status" aria-live="polite">
+      <GlassCard variant="acrylic" padding="p-4">
+        <div className="ym-toast__row">
+          <div className="ym-toast__text">
+            {status === "available" && (
+              <p className="ym-kicker">发现新版本 v{version}</p>
+            )}
+            {status === "downloading" && (
+              <>
+                <p className="ym-kicker">正在下载更新 {progress}%</p>
                 <div
-                  className="h-full transition-all duration-300"
-                  style={{
-                    width: `${progress}%`,
-                    background: "linear-gradient(to right, var(--primary), var(--vp-accent))",
-                  }}
-                />
-              </div>
-            </div>
-          )}
-          {status === "downloaded" && (
-            <div className="text-sm font-medium">更新已下载，重启后安装</div>
-          )}
-          {status === "error" && (
-            <div className="text-sm text-destructive">更新检查失败</div>
-          )}
-        </div>
+                  className="ym-progress"
+                  role="progressbar"
+                  aria-valuenow={progress}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-label="下载进度"
+                >
+                  <span style={{ width: `${progress}%` }} />
+                </div>
+              </>
+            )}
+            {status === "downloaded" && (
+              <p className="ym-kicker">更新已下载，重启后安装</p>
+            )}
+            {status === "error" && (
+              <p className="ym-alert ym-alert--danger" role="alert">更新检查失败</p>
+            )}
+          </div>
 
-        <div className="flex items-center gap-2">
-          {status === "available" && (
-            <>
-              <Button variant="primary" size="sm" onClick={handleDownload}>下载</Button>
-              <Button variant="ghost" size="sm" onClick={() => setVisible(false)}>稍后</Button>
-            </>
-          )}
-          {status === "downloaded" && (
-            <Button variant="primary" size="sm" onClick={handleInstall}>重启</Button>
-          )}
-        </div>
+          <div className="ym-toast__actions">
+            {status === "available" && (
+              <>
+                <button type="button" className="ym-btn ym-btn--primary ym-btn--sm ym-focus" onClick={handleDownload}>下载</button>
+                <button type="button" className="ym-btn ym-btn--ghost ym-btn--sm ym-focus" onClick={() => setVisible(false)}>稍后</button>
+              </>
+            )}
+            {status === "downloaded" && (
+              <button type="button" className="ym-btn ym-btn--primary ym-btn--sm ym-focus" onClick={handleInstall}>重启</button>
+            )}
+          </div>
         </div>
       </GlassCard>
     </div>

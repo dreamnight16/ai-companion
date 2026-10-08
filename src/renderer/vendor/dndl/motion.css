@@ -1,0 +1,48 @@
+/* Optional DNDL feedback; no global animation, reset, or page replay. */
+.dn-interactive {
+  border-radius: var(--dn-radius);
+  transition: transform var(--dn-duration-expand) var(--dn-ease-snap),
+    box-shadow var(--dn-duration-expand) var(--dn-ease-in);
+}
+@media (hover: hover) and (pointer: fine) {
+  .dn-interactive:hover:not(:disabled):not([aria-disabled="true"]) {
+    transform: translateY(var(--dn-hover-lift));
+    box-shadow: var(--dn-shadow-2);
+  }
+}
+.dn-interactive:active:not(:disabled):not([aria-disabled="true"]) {
+  transform: scale(var(--dn-press-scale));
+  box-shadow: var(--dn-shadow-1);
+  transition-duration: var(--dn-duration-press);
+}
+.dn-focus:focus-visible {
+  outline: var(--dn-focus-width) solid var(--dn-focus);
+  outline-offset: var(--dn-focus-offset);
+}
+/* Directional entrance; fill stays backwards so later transforms (hover) are not locked. */
+.dn-enter {
+  animation: dn-enter var(--dn-duration-page) var(--dn-ease-in) backwards;
+  animation-delay: calc(var(--dn-enter-index, 0) * var(--dn-stagger));
+}
+@keyframes dn-enter {
+  from { opacity: 0; transform: translateX(-16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+/* Staggered rise-in for cards and tiles; plays once on load, never on data refresh. */
+.dn-rise {
+  animation: dn-rise var(--dn-duration-page) var(--dn-ease-in) backwards;
+  animation-delay: calc(var(--dn-enter-index, 0) * var(--dn-stagger));
+}
+@keyframes dn-rise {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dn-interactive { transition: none; }
+  .dn-interactive:hover:not(:disabled):not([aria-disabled="true"]),
+  .dn-interactive:active:not(:disabled):not([aria-disabled="true"]) { transform: none; }
+  .dn-enter, .dn-rise { animation: none; }
+}
+@media (forced-colors: active) {
+  .dn-focus:focus-visible { outline-color: Highlight; }
+}

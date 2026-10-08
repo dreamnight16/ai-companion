@@ -1,5 +1,5 @@
 import { type RefObject, useEffect, useMemo, memo } from "react";
-import { Users, Heart } from "lucide-react";
+import { Heart } from "lucide-react";
 import type { ChatMessage } from "../../hooks/useChat";
 import MessageBubble from "./MessageBubble";
 import { Avatar, AvatarFallback } from "../ui/Avatar";
@@ -13,7 +13,7 @@ function formatDateLabel(ts: string): string | null {
   const target = new Date(d.getFullYear(), d.getMonth(), d.getDate());
   if (target.getTime() === today.getTime()) return "今天";
   if (target.getTime() === yesterday.getTime()) return "昨天";
-  return `${d.getMonth() + 1}月${d.getDate()}日`;
+  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
 }
 
 interface GroupedMessages {
@@ -45,30 +45,23 @@ const MessageList = memo(function MessageList({
   onRegenerate?: () => void;
 }) {
   const groups = useMemo(() => groupByDate(messages), [messages]);
-  // 最后一条 AI 消息可以右键重新生成
+  // 只有最后一条 AI 消息可以重新生成
   const lastAssistantIdx = messages.map(m => m.role).lastIndexOf("partner");
 
   useEffect(() => {
     const el = messagesEndRef.current;
     if (el) el.scrollIntoView({ behavior: "smooth" });
-  }, [messages, typing, composing]);
+  }, [messages, typing, composing, messagesEndRef]);
 
   if (messages.length === 0) {
     return (
-      <div style={{ display: "flex", flex: 1, alignItems: "center", justifyContent: "center" }}>
-        <div style={{ textAlign: "center" }} className="bounce-in">
-          <div style={{
-            width: 64, height: 64, margin: "0 auto 16px",
-            borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center",
-            background: "var(--vp-primary-soft)",
-          }}>
-            <Users size={24} style={{ color: "var(--primary)" }} />
-          </div>
-          <h3 style={{ fontSize: 16, fontWeight: 500 }}>开始聊天吧</h3>
-          <p style={{ fontSize: 12, marginTop: 8, color: "var(--muted-foreground)" }}>
-            发送第一条消息，TA 会回复你
-          </p>
-        </div>
+      <div className="ym-empty-state">
+        <span className="ym-kicker">会话</span>
+        <h2 className="ym-empty-state__title">还没有对话</h2>
+        <p className="ym-empty-state__text">
+          发送第一条消息，TA 会按你设置的资料、说话方式和记忆回复。
+          记忆会在设置中逐条列出，可以随时查看和修改。
+        </p>
       </div>
     );
   }
@@ -76,17 +69,11 @@ const MessageList = memo(function MessageList({
   return (
     <div role="log" aria-live="polite" aria-label="聊天消息">
       {groups.map((group, gi) => (
-        <div key={gi} style={{ marginBottom: 16 }}>
+        <section key={gi} className="ym-daygroup">
           {group.label && (
-            <div style={{ display: "flex", justifyContent: "center", padding: "16px 0" }}>
-              <span style={{
-                fontSize: 12,
-                fontFamily: "var(--vp-font-mono)",
-                color: "var(--muted-foreground)",
-              }}>
-                {group.label}
-              </span>
-            </div>
+            <h2 className="ym-daygroup__label">
+              <span className="ym-kicker">{group.label}</span>
+            </h2>
           )}
           {group.messages.map(({ msg, idx }, mi) => (
             <MessageBubble
@@ -97,29 +84,23 @@ const MessageList = memo(function MessageList({
               onRegenerate={onRegenerate}
             />
           ))}
-        </div>
+        </section>
       ))}
 
       {(typing || composing) && (
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 8, paddingTop: 8 }}
-          className="slide-up">
-          <Avatar style={{ width: 32, height: 32, background: "var(--vp-primary-soft)" }}>
+        <div className="ym-msg ym-msg--partner">
+          <Avatar style={{ width: 32, height: 32, background: "var(--ym-teal-tint)" }}>
             <AvatarFallback className="bg-transparent">
-              <Heart size={16} style={{ color: "var(--primary)" }} fill="currentColor" />
+              <Heart size={16} style={{ color: "var(--dn-teal)" }} fill="currentColor" aria-hidden="true" />
             </AvatarFallback>
           </Avatar>
-          <div style={{
-            padding: "12px 16px",
-            background: "var(--vp-bubble-partner-glass)",
-            backdropFilter: "blur(8px)",
-            WebkitBackdropFilter: "blur(8px)",
-            border: "1px solid rgba(255,255,255,0.3)",
-            borderRadius: "16px 16px 16px 4px",
-          }}>
-            <span style={{ fontSize: 12, color: "var(--muted-foreground)", marginRight: 8 }}>正在想怎么回复...</span>
-            <span className="bounce-dot" />
-            <span className="bounce-dot" style={{ marginLeft: 4 }} />
-            <span className="bounce-dot" style={{ marginLeft: 4 }} />
+          <div className="ym-msg__col">
+            <p className="ym-typing" role="status">
+              <span>正在组织回复</span>
+              <span className="bounce-dot" aria-hidden="true" />
+              <span className="bounce-dot" aria-hidden="true" />
+              <span className="bounce-dot" aria-hidden="true" />
+            </p>
           </div>
         </div>
       )}

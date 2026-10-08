@@ -1,7 +1,24 @@
 import { useState, useEffect } from "react";
-import { Flex, Text, Button, Dialog } from "@radix-ui/themes";
-import { Container } from "lucide-react";
-import { GlassCard, CardHeader } from "../components/ui/GlassCard";
+import * as Dialog from "@radix-ui/react-dialog";
+import { Container, X } from "lucide-react";
+
+const STATUS_LABEL: Record<string, string> = {
+  stopped: "未启动",
+  checking: "正在检查 Docker",
+  pulling: "正在拉取镜像",
+  starting: "正在启动容器",
+  "waiting-qr": "等待服务就绪",
+  connected: "运行中",
+  error: "启动失败",
+  "no-docker": "未检测到 Docker",
+};
+
+const STATUS_TONE: Record<string, string> = {
+  connected: "ym-state-block--ok",
+  error: "ym-state-block--danger",
+  "no-docker": "ym-state-block--warn",
+  stopped: "ym-state-block--idle",
+};
 
 export default function WeChatSetup({ onBack }: { onBack: () => void }) {
   const [status, setStatus] = useState<Record<string, unknown>>({ status: "stopped", message: "" });
@@ -27,103 +44,86 @@ export default function WeChatSetup({ onBack }: { onBack: () => void }) {
 
   const s = status.status as string;
   const isWorking = ["checking", "pulling", "starting"].includes(s);
+  const tone = STATUS_TONE[s] ?? "ym-state-block--busy";
+  const message = (status.message as string) || "";
 
   return (
-    <Dialog.Root open onOpenChange={() => onBack()}>
-      <Dialog.Content maxWidth="448px" style={{ padding: 0, background: "transparent" }}>
-        <GlassCard padding="p-0">
-          <CardHeader title="微信登录" onClose={onBack} />
-          <div style={{ padding: "24px 28px 28px" }}>
-            <Flex direction="column" align="center" gap="5">
+    <Dialog.Root open onOpenChange={(open) => { if (!open) onBack(); }}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="ym-scrim" />
+        <Dialog.Content className="ym-dialog dn-acrylic dn-elevation-3">
+          <header className="ym-dialog__head">
+            <div>
+              <Dialog.Title className="ym-dialog__title">微信登录</Dialog.Title>
+              <Dialog.Description className="ym-dialog__desc">
+                通过 Docker 运行 Gewechat 服务接入微信
+              </Dialog.Description>
+            </div>
+            <Dialog.Close asChild>
+              <button type="button" className="ym-icon-btn ym-focus" aria-label="关闭微信登录">
+                <X size={16} aria-hidden="true" />
+              </button>
+            </Dialog.Close>
+          </header>
+
+          <div className="ym-setup-panel">
+            <div className={`ym-state-block ${tone}`} role="status" aria-live="polite">
+              <Container size={22} aria-hidden="true" />
+              <div>
+                <p className="ym-state-block__title">{STATUS_LABEL[s] || s}</p>
+                {message && <p className="ym-state-block__note">{message}</p>}
+              </div>
+            </div>
 
             {isWorking && (
-              <Flex direction="column" align="center" gap="4" className="scale-in">
-                <div className="animate-spin" style={{ width: 48, height: 48, borderRadius: "50%", border: "2px solid var(--gray-5)", borderTopColor: "var(--accent-9)" }} />
-                <Text size="2" color="gray">{status.message as string || "处理中..."}</Text>
-              </Flex>
+              <p className="ym-note" role="status">
+                正在自动准备 Gewechat 容器，首次运行需要拉取镜像，请保持网络畅通。
+              </p>
             )}
 
             {s === "waiting-qr" && (
-              <Flex direction="column" align="center" gap="4" className="scale-in">
-                <div style={{ border: "1px solid var(--border)", borderRadius: "var(--radius-4)", background: "var(--secondary)" }}>
-                  <div className="p-4">
-                    <Flex direction="column" align="center" gap="3">
-                      <Text size="2" color="gray">等待服务就绪...</Text>
-                      <Text size="1" color="gray">请确保 Docker 正在运行</Text>
-                    </Flex>
-                  </div>
-                </div>
-              </Flex>
+              <p className="ym-note">服务启动中，请确认 Docker Desktop 正在运行。</p>
             )}
 
             {s === "connected" && (
-              <Flex direction="column" align="center" gap="4" className="scale-in">
-                <Flex width="64px" height="64px" align="center" justify="center"
-                  style={{ borderRadius: "50%", background: "var(--green-3)" }}>
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--green-9)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M20 6L9 17l-5-5" />
-                  </svg>
-                </Flex>
-                <Text size="3" weight="bold" style={{ color: "var(--green-9)" }}>微信已成功连接</Text>
-                <Button color="red" variant="soft" onClick={handleStop} style={{ width: "100%" }}>停止服务</Button>
-                <Button onClick={onBack} style={{ width: "100%" }}>返回聊天</Button>
-              </Flex>
+              <div className="ym-form">
+                <p className="ym-note">微信适配服务正在运行，可以回到会话继续聊天。</p>
+                <div className="ym-form__row">
+                  <button type="button" className="ym-btn ym-btn--primary ym-focus" onClick={onBack}>返回会话</button>
+                  <button type="button" className="ym-btn ym-btn--ghost ym-focus" onClick={handleStop}>停止服务</button>
+                </div>
+              </div>
             )}
 
             {s === "error" && (
-              <Flex direction="column" align="center" gap="4" className="scale-in">
-                <Flex width="64px" height="64px" align="center" justify="center"
-                  style={{ borderRadius: "50%", background: "var(--red-3)" }}>
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--red-9)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M12 8v4M12 16h.01" />
-                  </svg>
-                </Flex>
-                <Text size="2" color="red">{status.message as string || "启动失败"}</Text>
-                <Button onClick={handleStart} style={{ width: "100%" }}>重试</Button>
-              </Flex>
+              <div className="ym-form">
+                <p className="ym-alert ym-alert--danger" role="alert">{message || "启动失败"}</p>
+                <button type="button" className="ym-btn ym-btn--primary ym-focus" onClick={handleStart}>重试</button>
+              </div>
             )}
 
             {s === "no-docker" && (
-              <Flex direction="column" align="center" gap="4" className="scale-in">
-                <Flex width="64px" height="64px" align="center" justify="center"
-                  style={{ borderRadius: "50%", background: "var(--amber-3)" }}>
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--amber-9)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M12 8v4M12 16h.01" />
-                  </svg>
-                </Flex>
-                <Text size="3" weight="bold">未检测到 Docker</Text>
-                <Text size="2" color="gray" align="center">
-                  微信接入需要 Docker 环境运行 Gewechat 服务。<br />
-                  请先安装 <a href="https://www.docker.com" target="_blank" rel="noreferrer">Docker Desktop</a>
-                </Text>
-                <Button onClick={handleStart} style={{ width: "100%" }}>重新检测</Button>
-              </Flex>
+              <div className="ym-form">
+                <p className="ym-alert">
+                  未检测到 Docker。微信接入需要 Docker 环境运行 Gewechat 服务，请先安装 Docker Desktop。
+                </p>
+                <button type="button" className="ym-btn ym-btn--primary ym-focus" onClick={handleStart}>重新检测</button>
+              </div>
             )}
 
             {s !== "waiting-qr" && !isWorking && s !== "connected" && s !== "error" && s !== "no-docker" && (
-              <Flex direction="column" align="center" gap="5" className="scale-in">
-                <Flex width="64px" height="64px" align="center" justify="center"
-                  style={{ borderRadius: "50%", background: "var(--accent-3)" }}>
-                  <Container size={28} color="var(--accent-9)" />
-                </Flex>
-                <Flex direction="column" align="center" gap="1">
-                  <Text size="5" weight="bold">连接微信机器人</Text>
-                  <Text size="2" color="gray" align="center">
-                    通过 Docker 运行 Gewechat 服务<br />需要先安装 Docker Desktop
-                  </Text>
-                </Flex>
-                <Button size="3" onClick={handleStart} style={{ width: "100%" }}>
+              <div className="ym-form">
+                <p className="ym-note">
+                  启动后由应用自动运行 Gewechat 容器，需要预先安装 Docker Desktop。
+                </p>
+                <button type="button" className="ym-btn ym-btn--primary ym-btn--lg ym-focus" onClick={handleStart}>
                   启动微信服务
-                </Button>
-              </Flex>
+                </button>
+              </div>
             )}
-
-            </Flex>
           </div>
-        </GlassCard>
-      </Dialog.Content>
+        </Dialog.Content>
+      </Dialog.Portal>
     </Dialog.Root>
   );
 }

@@ -7,9 +7,7 @@
 > Development follows `0.x`; the `v1.0.0-beta.*` tags are historical and no longer maintained.
 > `package.json` reflects the latest stable `0.x` tag.
 
-## Unreleased
-
-Merged to `main` after the latest stable tag (v0.2.2), not yet released:
+## v0.2.3 (2026-10-08)
 
 - **Mobile app**: standalone React Native app in `mobile/` (RNFS StorageAdapter, AsyncStorage KVStore, 8-step setup wizard, FlatList chat UI, dark mode, memory management)
 - **Dependencies**: companion-engine bumped to `^0.5.0` (mutex file locks, circuit breaker, structured logging, API-key encryption infrastructure)

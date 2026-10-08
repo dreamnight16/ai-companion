@@ -77,4 +77,4 @@ afterSign: scripts/notarize.cjs
 publish:
   provider: github
   owner: dreamnight16
-  repo: Yumema
+  repo: ai-companion

@@ -2,12 +2,12 @@
 
 # 梦间 / Yumema
 
-[![Release](https://img.shields.io/badge/release-v0.2.2-blue)](https://github.com/dreamnight16/ai-companion/releases)
+[![Release](https://img.shields.io/badge/release-v0.2.3-blue)](https://github.com/dreamnight16/ai-companion/releases)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey)]()
 
 > 一个安静的桌面空间，用来聊天、整理记忆和设置日常互动。
 
-**当前版本：v0.2.2**
+**当前版本：v0.2.3**
 
 梦间 (Yumema) 是一个以可配置语言模型为基础的桌面伴侣应用。你可以设置资料、说话方式和记忆，通过 QQ、微信或应用内聊天。完成向导后即可开始使用。
 
@@ -31,7 +31,7 @@
 
 ## 版本状态
 
-**v0.2.2** — 当前为测试版，功能持续迭代中。使用后欢迎通过内置问卷提交反馈。
+**v0.2.3** — 当前为测试版，功能持续迭代中。使用后欢迎通过内置问卷提交反馈。
 
 ---
 

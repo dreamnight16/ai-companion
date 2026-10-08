@@ -2,7 +2,7 @@
 
 # Yumema (梦间)
 
-[![Release](https://img.shields.io/badge/release-v0.2.2-blue)](https://github.com/dreamnight16/ai-companion/releases)
+[![Release](https://img.shields.io/badge/release-v0.2.3-blue)](https://github.com/dreamnight16/ai-companion/releases)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey)]()
 
 > A quiet desktop space for conversation, memory, and the routines you choose.
@@ -11,7 +11,7 @@ A desktop companion built around a configurable language model. Define a profile
 keep a local conversation history, and connect in-app, through QQ, or via WeChat.
 Install it, complete the setup, and start a conversation.
 
-**Current version: v0.2.2**
+**Current version: v0.2.3**
 
 ---
 
@@ -33,7 +33,7 @@ Install it, complete the setup, and start a conversation.
 
 ## Version Status
 
-**v0.2.2** — Current beta release. Features are actively iterating. Feedback welcome via the in-app survey.
+**v0.2.3** — Current beta release. Features are actively iterating. Feedback welcome via the in-app survey.
 
 ---
 

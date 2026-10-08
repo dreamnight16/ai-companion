@@ -2,12 +2,12 @@
 
 # 夢間 / Yumema
 
-[![Release](https://img.shields.io/badge/release-v0.2.2-blue)](https://github.com/dreamnight16/ai-companion/releases)
+[![Release](https://img.shields.io/badge/release-v0.2.3-blue)](https://github.com/dreamnight16/ai-companion/releases)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey)]()
 
 > 会話、記憶、日々の設定をまとめる静かなデスクトップ空間。
 
-**現在のバージョン：v0.2.2**
+**現在のバージョン：v0.2.3**
 
 夢間（Yumema）は設定可能な言語モデルを使うデスクトップコンパニオンです。プロフィール、話し方、記憶を設定し、QQ、WeChat、またはアプリ内で会話できます。ウィザードを完了すれば使い始められます。
 
@@ -31,7 +31,7 @@
 
 ## バージョン状況
 
-**v0.2.2** — 現在はベータ版です。機能は継続的に改善されています。ご利用後は内蔵アンケートからフィードバックをお寄せください。
+**v0.2.3** — 現在はベータ版です。機能は継続的に改善されています。ご利用後は内蔵アンケートからフィードバックをお寄せください。
 
 ---
 
